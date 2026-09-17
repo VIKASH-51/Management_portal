@@ -6,7 +6,7 @@ import {
   SystemHealth, AuditLogItem, AIUsageSummary, OBEMatrixData
 } from '../types';
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (import.meta.env.DEV ? 'http://localhost:8000/api' : '/api');
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 let currentToken = localStorage.getItem('academic_token') || '';
 
