@@ -38,6 +38,36 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
   const [facultyPromptInstructions, setFacultyPromptInstructions] = useState('');
   const [showMCQAnswers, setShowMCQAnswers] = useState(false);
 
+  // Syllabus Units Scope & Coverage State
+  const defaultAvailableUnits = subject.units && subject.units.length > 0 
+    ? subject.units.map(u => u.unit_number) 
+    : [1, 2, 3, 4, 5];
+  const [selectedUnits, setSelectedUnits] = useState<number[]>(defaultAvailableUnits);
+
+  useEffect(() => {
+    if (subject.units && subject.units.length > 0) {
+      setSelectedUnits(subject.units.map(u => u.unit_number));
+    } else {
+      setSelectedUnits([1, 2, 3, 4, 5]);
+    }
+  }, [subject.id, subject.units]);
+
+  const toggleUnit = (unitNum: number) => {
+    if (selectedUnits.includes(unitNum)) {
+      if (selectedUnits.length <= 1) {
+        alert('Question paper must cover at least 1 unit from the syllabus.');
+        return;
+      }
+      setSelectedUnits(selectedUnits.filter(u => u !== unitNum));
+    } else {
+      setSelectedUnits([...selectedUnits, unitNum].sort((a, b) => a - b));
+    }
+  };
+
+  const selectUnitPreset = (unitNums: number[]) => {
+    setSelectedUnits(unitNums);
+  };
+
   // File Attachment & Template/Verification State
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [extractingTemplate, setExtractingTemplate] = useState(false);
@@ -264,6 +294,11 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (selectedUnits.length === 0) {
+      alert('Please select at least 1 syllabus unit to cover in the question paper.');
+      return;
+    }
+
     try {
       setGenerating(true);
       setAgentSteps([]);
@@ -278,6 +313,7 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
         difficulty_med_pct: medPct,
         difficulty_hard_pct: hardPct,
         format_type: patternPreset === 'CUSTOM' ? 'CUSTOM' : 'FORMAT_A',
+        units_included: selectedUnits.sort((a, b) => a - b),
         custom_sections: customSections,
         faculty_prompt_instructions: facultyPromptInstructions
       });
@@ -591,6 +627,136 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
                 </div>
               </div>
 
+              {/* Syllabus Units Scope & Coverage Panel */}
+              <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-blue-950/25 border border-blue-200/80 dark:border-blue-800/60 space-y-3.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      Syllabus Units to Cover
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800">
+                        {selectedUnits.length} of {(subject.units && subject.units.length > 0 ? subject.units.length : 5)} Units Selected ({selectedUnits.map(u => `Unit ${u}`).join(', ')})
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Choose how many and which specific units to include. Questions will be strictly generated from and distributed across your selected units.
+                    </p>
+                  </div>
+
+                  {/* Quick Preset Selector Buttons */}
+                  <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => selectUnitPreset(subject.units?.length ? subject.units.map(u => u.unit_number) : [1, 2, 3, 4, 5])}
+                      className={`px-2.5 py-1 rounded text-[11px] font-semibold transition border ${
+                        selectedUnits.length === (subject.units?.length || 5)
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      All Units (1 to 5)
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => selectUnitPreset([1, 2])}
+                      className={`px-2.5 py-1 rounded text-[11px] font-semibold transition border ${
+                        selectedUnits.length === 2 && selectedUnits.includes(1) && selectedUnits.includes(2)
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      Units 1 & 2 (CIA 1)
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => selectUnitPreset([3, 4])}
+                      className={`px-2.5 py-1 rounded text-[11px] font-semibold transition border ${
+                        selectedUnits.length === 2 && selectedUnits.includes(3) && selectedUnits.includes(4)
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      Units 3 & 4 (CIA 2)
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => selectUnitPreset([1, 2, 3])}
+                      className={`px-2.5 py-1 rounded text-[11px] font-semibold transition border ${
+                        selectedUnits.length === 3 && selectedUnits.includes(1) && selectedUnits.includes(2) && selectedUnits.includes(3)
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      Units 1–3
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => selectUnitPreset([5])}
+                      className={`px-2.5 py-1 rounded text-[11px] font-semibold transition border ${
+                        selectedUnits.length === 1 && selectedUnits.includes(5)
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      Unit 5 (CIA 3)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Individual Unit Checkbox Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 pt-1">
+                  {(subject.units && subject.units.length > 0 ? subject.units : [
+                    { unit_number: 1, title: 'Foundations & Architecture', topics: ['Core Concepts', 'Protocols'] },
+                    { unit_number: 2, title: 'Methodologies & Design', topics: ['Protocol Design', 'Error Control'] },
+                    { unit_number: 3, title: 'Modeling & Analysis', topics: ['Optimization', 'Throughput'] },
+                    { unit_number: 4, title: 'Advanced Optimization', topics: ['Performance', 'Fault Tolerance'] },
+                    { unit_number: 5, title: 'Enterprise Applications', topics: ['Case Studies', 'Security'] }
+                  ]).map((u) => {
+                    const isSelected = selectedUnits.includes(u.unit_number);
+                    const topicsCount = Array.isArray(u.topics) ? u.topics.length : 0;
+                    return (
+                      <div
+                        key={u.unit_number}
+                        onClick={() => toggleUnit(u.unit_number)}
+                        className={`p-2.5 rounded-lg border cursor-pointer transition flex flex-col justify-between select-none ${
+                          isSelected
+                            ? 'bg-white dark:bg-slate-900 border-blue-500 dark:border-blue-500 shadow-xs ring-1 ring-blue-500/30'
+                            : 'bg-slate-100/70 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60 hover:opacity-100'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-1.5 mb-1">
+                          <span className="text-[11px] font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {}}
+                              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-3.5 w-3.5 pointer-events-none"
+                            />
+                            Unit {u.unit_number}
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800">
+                            CO{u.unit_number}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium line-clamp-2 leading-tight">
+                          {u.title.replace(/^Unit\s*\d+\s*:\s*/i, '') || `Unit ${u.unit_number} Core Syllabus`}
+                        </p>
+                        <div className="mt-2 pt-1 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between text-[9px] text-slate-500 dark:text-slate-400">
+                          <span>{topicsCount > 0 ? `${topicsCount} Topics` : 'Syllabus Mapped'}</span>
+                          <span className={isSelected ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-slate-400'}>
+                            {isSelected ? '✓ Included' : 'Excluded'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Custom Faculty Prompt Guidance */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
@@ -801,14 +967,20 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
 
                     <div className="text-center space-y-1">
                       <p className="text-xs uppercase font-bold tracking-widest text-slate-600 dark:text-slate-400">
-                        Autonomous End-Semester Examination
+                        {selectedQP.exam_name || 'Autonomous Examination'}
                       </p>
                       <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white uppercase tracking-tight">
                         {subject.name}
                       </h2>
-                      <p className="text-xs text-slate-600 dark:text-slate-400">
-                        (Common to all eligible branches under Autonomous Regulation)
-                      </p>
+                      <div className="flex items-center justify-center flex-wrap gap-2 pt-1">
+                        <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800 flex items-center gap-1">
+                          <BookOpen className="w-3 h-3" />
+                          Syllabus Covered: {selectedQP.units_included && selectedQP.units_included.length > 0 ? selectedQP.units_included.map(u => `Unit ${u}`).join(', ') : 'All Units (1–5)'}
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+                          Regulation: {selectedQP.regulation || 'R2021'}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between text-xs font-semibold text-slate-800 dark:text-slate-200 pt-2 border-t border-slate-300 dark:border-slate-700">

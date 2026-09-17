@@ -55,6 +55,13 @@ def format_qp_response(qp: QuestionPaper) -> QuestionPaperResponse:
             validation=json.loads(s.validation_json or "{}")
         ))
 
+    format_details = {}
+    try:
+        format_details = json.loads(qp.format_details_json or "{}")
+    except Exception:
+        format_details = {}
+    units_inc = format_details.get("units_included", [1, 2, 3, 4, 5])
+
     return QuestionPaperResponse(
         id=qp.id,
         subject_id=qp.subject_id,
@@ -70,6 +77,7 @@ def format_qp_response(qp: QuestionPaper) -> QuestionPaperResponse:
         difficulty_hard_pct=qp.difficulty_hard_pct,
         format_type=qp.format_type,
         sets_count=qp.sets_count,
+        units_included=units_inc,
         validation_score=json.loads(qp.validation_score_json or "{}"),
         status=qp.status,
         created_at=qp.created_at,
@@ -228,16 +236,33 @@ def generate_question_papers(req: QuestionPaperGenerateRequest, current_user: Us
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
 
-    # Prepare units data from subject syllabus
-    units_data = []
+    # Prepare units data from subject syllabus, strictly filtering by req.units_included
+    all_subject_units = []
     for u in subject.units:
-        units_data.append({
+        all_subject_units.append({
             "unit_number": u.unit_number,
             "title": u.title,
             "topics": json.loads(u.topics_json or "[]"),
             "learning_outcomes": json.loads(u.learning_outcomes_json or "[]"),
             "hours": u.hours
         })
+
+    units_data = []
+    if req.units_included and len(req.units_included) > 0:
+        units_data = [u for u in all_subject_units if u["unit_number"] in req.units_included]
+        # If syllabus didn't have matching unit records, synthesize unit structures for the specified unit numbers
+        if not units_data:
+            units_data = [{
+                "unit_number": num,
+                "title": f"Unit {num}: Subject Core Principles & Implementation",
+                "topics": [f"Unit {num} Fundamental Theory", f"Unit {num} System Protocols", f"Unit {num} Engineering Applications"],
+                "learning_outcomes": [f"Analyze and formulate solutions in Unit {num}"],
+                "hours": 9
+            } for num in req.units_included]
+    else:
+        units_data = all_subject_units
+
+    effective_units = req.units_included if req.units_included and len(req.units_included) > 0 else [u.get("unit_number", idx + 1) for idx, u in enumerate(units_data)]
 
     # Run Multi-Agent Orchestrator
     orchestration = AcademicOrchestrator.run_question_paper_workflow(
@@ -276,7 +301,11 @@ def generate_question_papers(req: QuestionPaperGenerateRequest, current_user: Us
         difficulty_med_pct=req.difficulty_med_pct,
         difficulty_hard_pct=req.difficulty_hard_pct,
         format_type="CUSTOM" if req.custom_sections else req.format_type,
-        format_details_json=json.dumps({"summary": format_summary, "custom_sections": req.custom_sections}),
+        format_details_json=json.dumps({
+            "summary": format_summary,
+            "custom_sections": req.custom_sections,
+            "units_included": effective_units
+        }),
         sets_count=req.sets_count,
         validation_score_json=json.dumps(qp_data["overall_validation"]),
         status="APPROVED"
@@ -294,8 +323,7 @@ def generate_question_papers(req: QuestionPaperGenerateRequest, current_user: Us
             validation_json=json.dumps(s_data["validation"])
         )
         db.add(qp_set)
-        db.commit()
-        db.refresh(qp_set)
+        db.flush()
 
         for item in s_data["items"]:
             unit_num = item.get("unit_number", 1)
@@ -457,9 +485,11 @@ def generate_question_papers(req: QuestionPaperGenerateRequest, current_user: Us
     )
     db.add(log)
     db.commit()
+    db.expire_all()
+    fresh_qp = db.query(QuestionPaper).filter(QuestionPaper.id == qp_record.id).first()
 
     return {
-        "question_paper": format_qp_response(qp_record),
+        "question_paper": format_qp_response(fresh_qp),
         "uniqueness_report": qp_data.get("uniqueness_report", {}),
         "agent_steps": orchestration["agent_steps"]
     }

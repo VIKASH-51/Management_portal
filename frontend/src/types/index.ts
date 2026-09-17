@@ -152,6 +152,7 @@ export interface QuestionPaper {
   difficulty_hard_pct: number;
   format_type: string;
   sets_count: number;
+  units_included?: number[];
   validation_score: {
     total_sets_generated?: number;
     zero_duplicate_guarantee?: boolean;

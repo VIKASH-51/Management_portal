@@ -229,6 +229,7 @@ class QuestionPaperResponse(BaseModel):
     difficulty_hard_pct: int
     format_type: str
     sets_count: int
+    units_included: Optional[List[int]] = [1, 2, 3, 4, 5]
     validation_score: Dict[str, Any] = {}
     status: str
     created_at: datetime

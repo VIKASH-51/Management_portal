@@ -250,6 +250,7 @@ export const api = {
     difficulty_med_pct: number;
     difficulty_hard_pct: number;
     format_type: string;
+    units_included?: number[];
     custom_sections?: any[];
     faculty_prompt_instructions?: string;
     template_context?: string;

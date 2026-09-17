@@ -326,12 +326,16 @@ class QuestionPaperAgent:
                     marks_per_q = int(sec.get("marks_per_question", 2))
                     choice_type = sec.get("choice_type", "COMPULSORY")
                     q_type = sec.get("question_type", "DESCRIPTIVE").upper()
-                    open_count = sec.get("open_choice_count", q_count)
-                    unit_scope = sec.get("unit_scope") or [u.get("unit_number", idx + 1) for idx, u in enumerate(units)]
+                    valid_unit_nums = [u.get("unit_number", idx + 1) for idx, u in enumerate(units)]
+                    raw_scope = sec.get("unit_scope") or valid_unit_nums
+                    unit_scope = [num for num in raw_scope if num in valid_unit_nums]
+                    if not unit_scope:
+                        unit_scope = valid_unit_nums
 
                     for i in range(q_count):
-                        assigned_unit_num = unit_scope[i % len(unit_scope)] if unit_scope else ((i % len(units)) + 1)
+                        assigned_unit_num = unit_scope[i % len(unit_scope)] if unit_scope else valid_unit_nums[i % len(valid_unit_nums)]
                         matched_unit = next((u for u in units if u.get("unit_number") == assigned_unit_num), units[i % len(units)])
+                        assigned_unit_num = matched_unit.get("unit_number", assigned_unit_num)
                         u_title = matched_unit.get("title", f"Unit {assigned_unit_num}")
                         topics_list = matched_unit.get("topics", [])
                         topic_name = topics_list[(i + s_idx) % len(topics_list)] if topics_list else u_title.split(":")[-1].strip()
@@ -432,68 +436,50 @@ class QuestionPaperAgent:
                             q_global_num += 1
 
             else:
-                # Standard Autonomous 100M Pattern (Part A: 10x2 Short/MCQ, Part B: 5x13 Long, Part C: 1x15 Case Study)
-                # 1. PART A: 10 Questions x 2 Marks = 20 Marks
-                for u_idx, u in enumerate(units[:5]):
-                    u_num = u.get("unit_number", u_idx + 1)
+                # Standard Autonomous Pattern (Part A: 10x2 Short/MCQ, Part B: 5x13 Long, Part C: 1x15 Case Study)
+                # 1. PART A: 10 Questions x 2 Marks = 20 Marks (Distributed across selected units)
+                num_part_a_questions = 10
+                for q_idx in range(num_part_a_questions):
+                    u = units[q_idx % len(units)]
+                    u_num = u.get("unit_number", (q_idx % len(units)) + 1)
                     u_title = u.get("title", f"Unit {u_num}")
                     topics = u.get("topics", [])
-                    t1 = topics[(s_idx * 2) % len(topics)] if topics else f"{u_title} Foundations"
-                    t2 = topics[(s_idx * 2 + 1) % len(topics)] if topics else f"{u_title} Protocols"
+                    t = topics[(s_idx * 2 + (q_idx // len(units))) % len(topics)] if topics else f"{u_title} Fundamental Concepts"
 
-                    # Q1: Short Answer Definition
-                    s1 = cls._synthesize_short_answer(t1, subject_name, u_num, s_idx, 0)
+                    is_harder = (q_idx % 2 != 0)
+                    s_item = cls._synthesize_short_answer(t, subject_name, u_num, s_idx, q_idx)
                     items.append({
                         "section_name": "Part A",
                         "question_number": q_global_num,
                         "sub_division": "",
-                        "question_text": f"Q{q_global_num}. {s1['question_text']}",
+                        "question_text": f"Q{q_global_num}. {s_item['question_text']}",
                         "marks": 2,
-                        "difficulty": "EASY",
-                        "bloom_level": "Remember",
+                        "difficulty": "MEDIUM" if is_harder else "EASY",
+                        "bloom_level": "Understand" if is_harder else "Remember",
                         "unit_number": u_num,
                         "internal_choice_group": "",
                         "question_type": "SHORT_ANSWER",
                         "co_mapped": f"CO{u_num}",
                         "options": [],
-                        "correct_answer": s1["correct_answer"],
-                        "explanation": s1["explanation"],
+                        "correct_answer": s_item["correct_answer"],
+                        "explanation": s_item["explanation"],
                         "scenario_text": ""
                     })
                     q_global_num += 1
 
-                    # Q2: Numerical / Conceptual formulation
-                    s2 = cls._synthesize_short_answer(t2, subject_name, u_num, s_idx, 1)
-                    items.append({
-                        "section_name": "Part A",
-                        "question_number": q_global_num,
-                        "sub_division": "",
-                        "question_text": f"Q{q_global_num}. {s2['question_text']}",
-                        "marks": 2,
-                        "difficulty": "MEDIUM",
-                        "bloom_level": "Understand",
-                        "unit_number": u_num,
-                        "internal_choice_group": "",
-                        "question_type": "SHORT_ANSWER",
-                        "co_mapped": f"CO{u_num}",
-                        "options": [],
-                        "correct_answer": s2["correct_answer"],
-                        "explanation": s2["explanation"],
-                        "scenario_text": ""
-                    })
-                    q_global_num += 1
-
-                # 2. PART B: 5 Questions x 13 Marks = 65 Marks (with (a) OR (b) internal choice)
-                for u_idx, u in enumerate(units[:5]):
-                    u_num = u.get("unit_number", u_idx + 1)
+                # 2. PART B: 5 Questions x 13 Marks = 65 Marks (with (a) OR (b) internal choice per question, distributed across selected units)
+                num_part_b_questions = 5
+                for q_idx in range(num_part_b_questions):
+                    u = units[q_idx % len(units)]
+                    u_num = u.get("unit_number", (q_idx % len(units)) + 1)
                     u_title = u.get("title", f"Unit {u_num}")
                     topics = u.get("topics", [])
-                    t_main = topics[(s_idx + 2) % len(topics)] if topics else f"{u_title} Core Architecture"
-                    t_alt = topics[(s_idx + 3) % len(topics)] if topics else f"{u_title} Comparative Analysis"
+                    t_main = topics[(s_idx + q_idx) % len(topics)] if topics else f"{u_title} Core Architecture"
+                    t_alt = topics[(s_idx + q_idx + 1) % len(topics)] if topics else f"{u_title} Comparative Analysis & Implementation"
                     choice_group = f"Q{q_global_num}_choice"
 
                     # Choice (a)
-                    la_a = cls._synthesize_long_answer(t_main, subject_name, u_num, s_idx, 0, 13)
+                    la_a = cls._synthesize_long_answer(t_main, subject_name, u_num, s_idx, q_idx, 13)
                     items.append({
                         "section_name": "Part B",
                         "question_number": q_global_num,
@@ -513,7 +499,7 @@ class QuestionPaperAgent:
                     })
 
                     # Choice (b)
-                    la_b = cls._synthesize_long_answer(t_alt, subject_name, u_num, s_idx + 1, 1, 13)
+                    la_b = cls._synthesize_long_answer(t_alt, subject_name, u_num, s_idx + 1, q_idx + 1, 13)
                     items.append({
                         "section_name": "Part B",
                         "question_number": q_global_num,
@@ -533,13 +519,14 @@ class QuestionPaperAgent:
                     })
                     q_global_num += 1
 
-                # 3. PART C: 1 Question x 15 Marks = 15 Marks (Case Study)
-                u5 = units[4] if len(units) >= 5 else units[-1]
-                u5_topics = u5.get("topics", [u5.get("title", "Distributed Systems")])
-                t5_a = u5_topics[s_idx % len(u5_topics)] if u5_topics else "Distributed System Implementation"
-                t5_b = u5_topics[(s_idx + 1) % len(u5_topics)] if u5_topics else "Autonomous Edge Computing"
-                cs_a = cls._synthesize_case_study(t5_a, subject_name, 5, s_idx, 0, 15)
-                cs_b = cls._synthesize_case_study(t5_b, subject_name, 5, s_idx, 1, 15)
+                # 3. PART C: 1 Question x 15 Marks = 15 Marks (Case Study from the active units)
+                u_case = units[(s_idx) % len(units)]
+                u_case_num = u_case.get("unit_number", len(units))
+                u_case_topics = u_case.get("topics", [u_case.get("title", f"Unit {u_case_num} Advanced Applications")])
+                t_case_a = u_case_topics[s_idx % len(u_case_topics)] if u_case_topics else f"Unit {u_case_num} System Architecture"
+                t_case_b = u_case_topics[(s_idx + 1) % len(u_case_topics)] if u_case_topics else f"Unit {u_case_num} Enterprise Case Study"
+                cs_a = cls._synthesize_case_study(t_case_a, subject_name, u_case_num, s_idx, 0, 15)
+                cs_b = cls._synthesize_case_study(t_case_b, subject_name, u_case_num, s_idx, 1, 15)
                 c_choice = f"Q{q_global_num}_choice"
 
                 items.append({
@@ -550,10 +537,10 @@ class QuestionPaperAgent:
                     "marks": 15,
                     "difficulty": "HARD",
                     "bloom_level": "Evaluate",
-                    "unit_number": 4,
+                    "unit_number": u_case_num,
                     "internal_choice_group": c_choice,
                     "question_type": "CASE_STUDY",
-                    "co_mapped": "CO4",
+                    "co_mapped": f"CO{u_case_num}",
                     "options": [],
                     "correct_answer": cs_a["correct_answer"],
                     "explanation": cs_a["explanation"],
@@ -568,10 +555,10 @@ class QuestionPaperAgent:
                     "marks": 15,
                     "difficulty": "HARD",
                     "bloom_level": "Create",
-                    "unit_number": 5,
+                    "unit_number": u_case_num,
                     "internal_choice_group": c_choice,
                     "question_type": "CASE_STUDY",
-                    "co_mapped": "CO5",
+                    "co_mapped": f"CO{u_case_num}",
                     "options": [],
                     "correct_answer": cs_b["correct_answer"],
                     "explanation": cs_b["explanation"],
