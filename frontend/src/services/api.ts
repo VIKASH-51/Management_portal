@@ -253,6 +253,7 @@ export const api = {
     units_included?: number[];
     custom_sections?: any[];
     faculty_prompt_instructions?: string;
+    custom_pattern_text?: string;
     teacher_custom_questions?: any[];
     custom_questions_text?: string;
     template_context?: string;

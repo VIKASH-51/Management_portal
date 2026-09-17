@@ -211,6 +211,7 @@ class QuestionPaperGenerateRequest(BaseModel):
     units_included: List[int] = [1, 2, 3, 4, 5]
     custom_sections: Optional[List[Dict[str, Any]]] = None
     faculty_prompt_instructions: Optional[str] = ""
+    custom_pattern_text: Optional[str] = ""
     teacher_custom_questions: Optional[List[Dict[str, Any]]] = []
     custom_questions_text: Optional[str] = ""
     reference_doc_ids: Optional[List[int]] = []

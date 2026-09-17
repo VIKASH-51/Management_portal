@@ -261,8 +261,13 @@ def generate_question_papers(req: QuestionPaperGenerateRequest, current_user: Us
             } for num in req.units_included]
     else:
         units_data = all_subject_units
-
     effective_units = req.units_included if req.units_included and len(req.units_included) > 0 else [u.get("unit_number", idx + 1) for idx, u in enumerate(units_data)]
+
+    # Merge custom pattern instructions if provided
+    merged_prompt_instructions = req.faculty_prompt_instructions or ""
+    if req.custom_pattern_text:
+        pattern_header = f"CUSTOM EXAM QUESTION PATTERN / STRUCTURE:\n{req.custom_pattern_text.strip()}\n\n"
+        merged_prompt_instructions = pattern_header + merged_prompt_instructions
 
     # Run Multi-Agent Orchestrator
     orchestration = AcademicOrchestrator.run_question_paper_workflow(
@@ -276,7 +281,7 @@ def generate_question_papers(req: QuestionPaperGenerateRequest, current_user: Us
         format_type=req.format_type,
         units_data=units_data,
         custom_sections=req.custom_sections,
-        faculty_prompt_instructions=req.faculty_prompt_instructions,
+        faculty_prompt_instructions=merged_prompt_instructions,
         teacher_custom_questions=req.teacher_custom_questions,
         custom_questions_text=req.custom_questions_text,
         template_context=req.template_context

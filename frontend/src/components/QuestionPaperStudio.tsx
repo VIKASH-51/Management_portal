@@ -35,6 +35,9 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
   const [hardPct, setHardPct] = useState<number>(20);
   const [patternPreset, setPatternPreset] = useState<string>('PRESET_100M');
   const [showCustomArchitect, setShowCustomArchitect] = useState(false);
+  const [customPatternText, setCustomPatternText] = useState(
+    'Part A: 10 Questions x 2 Marks = 20 Marks (Compulsory Short Answers)\nPart B: 5 Questions x 13 Marks = 65 Marks (Internal Choice Either/Or)\nPart C: 1 Question x 15 Marks = 15 Marks (Application / Case Study)'
+  );
   const [facultyPromptInstructions, setFacultyPromptInstructions] = useState('');
   const [customQuestionsText, setCustomQuestionsText] = useState('');
   const [showMCQAnswers, setShowMCQAnswers] = useState(false);
@@ -186,11 +189,94 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
     fetchQB();
   }, [subject.id, qbSetFilter, qbUnit, qbDiff, qbBloom, qbSearch]);
 
+  const handleAutoParsePatternText = (textToParse?: string) => {
+    const raw = (textToParse !== undefined ? textToParse : customPatternText).trim();
+    if (!raw) {
+      alert('Please enter a pattern description in the box to auto-parse.');
+      return;
+    }
+    const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+    const parsedSections: SectionConfig[] = [];
+
+    lines.forEach((line, idx) => {
+      const nameMatch = line.match(/^(Part\s+[A-Z0-9]+|Section\s+[A-Z0-9]+|Unit\s+[A-Z0-9]+|[A-Z]\b)/i);
+      const name = nameMatch ? nameMatch[1] : `Part ${String.fromCharCode(65 + idx)}`;
+
+      const countMarkMatch = line.match(/(\d+)\s*(?:questions?|q)?\s*(?:x|\*|of|@)\s*(\d+)\s*(?:marks?|m)?/i)
+        || line.match(/(\d+)\s*(?:marks?|m)\s*(?:x|\*)\s*(\d+)/i);
+
+      let count = 5;
+      let marks = 2;
+
+      if (countMarkMatch) {
+        count = parseInt(countMarkMatch[1], 10);
+        marks = parseInt(countMarkMatch[2], 10);
+      } else {
+        const anyNumbers = line.match(/\b(\d+)\b/g);
+        if (anyNumbers && anyNumbers.length >= 2) {
+          count = parseInt(anyNumbers[0], 10);
+          marks = parseInt(anyNumbers[1], 10);
+        } else if (anyNumbers && anyNumbers.length === 1) {
+          count = parseInt(anyNumbers[0], 10);
+        }
+      }
+
+      let qType: any = 'SHORT_ANSWER';
+      const lower = line.toLowerCase();
+      if (lower.includes('mcq') || lower.includes('multiple choice') || lower.includes('objective')) {
+        qType = 'MCQ';
+      } else if (lower.includes('fill in') || lower.includes('blank')) {
+        qType = 'FILL_IN_BLANKS';
+      } else if (lower.includes('case study') || lower.includes('scenario') || lower.includes('comprehensive')) {
+        qType = 'CASE_STUDY';
+      } else if (lower.includes('numerical') || lower.includes('problem') || lower.includes('calculation')) {
+        qType = 'NUMERICAL';
+      } else if (lower.includes('code') || lower.includes('program') || lower.includes('algorithm')) {
+        qType = 'CODE_ANALYSIS';
+      } else if (marks >= 10 || lower.includes('long') || lower.includes('descriptive') || lower.includes('essay')) {
+        qType = 'LONG_ANSWER';
+      }
+
+      let choiceType: any = 'COMPULSORY';
+      if (lower.includes('internal choice') || lower.includes('either/or') || lower.includes('either or') || lower.includes('or choice')) {
+        choiceType = 'INTERNAL_CHOICE';
+      } else if (lower.includes('open choice') || lower.includes('any ') || lower.includes('choose ')) {
+        choiceType = 'OPEN_CHOICE';
+      } else if (marks >= 10) {
+        choiceType = 'INTERNAL_CHOICE';
+      }
+
+      parsedSections.push({
+        name,
+        title: `${name} Questions (${count} x ${marks} = ${count * marks} Marks)`,
+        questions_count: count > 0 ? count : 5,
+        marks_per_question: marks > 0 ? marks : 2,
+        choice_type: choiceType,
+        question_type: qType
+      });
+    });
+
+    if (parsedSections.length > 0) {
+      setCustomSections(parsedSections);
+      setPatternPreset('CUSTOM');
+      setShowCustomArchitect(true);
+    }
+  };
+
+  const applyPresetPattern = (text: string, dur: number, presetKey: string = 'CUSTOM') => {
+    setCustomPatternText(text);
+    setDurationMinutes(dur);
+    setPatternPreset(presetKey);
+    handleAutoParsePatternText(text);
+  };
+
   const handlePresetChange = (preset: string) => {
     setPatternPreset(preset);
     if (preset === 'PRESET_100M') {
       setShowCustomArchitect(false);
       setDurationMinutes(180);
+      const text = 'Part A: 10 Questions x 2 Marks = 20 Marks (Compulsory Short Concept Answers)\nPart B: 5 Questions x 13 Marks = 65 Marks (Internal Choice Either/Or)\nPart C: 1 Question x 15 Marks = 15 Marks (Comprehensive Application / Case Study)';
+      setCustomPatternText(text);
       setCustomSections([
         { name: 'Part A', title: 'Short Answer & Definitions (10 x 2 = 20 Marks)', questions_count: 10, marks_per_question: 2, choice_type: 'COMPULSORY', question_type: 'SHORT_ANSWER' },
         { name: 'Part B', title: 'Descriptive & Analytical Problems (5 x 13 = 65 Marks)', questions_count: 5, marks_per_question: 13, choice_type: 'INTERNAL_CHOICE', question_type: 'LONG_ANSWER' },
@@ -199,6 +285,8 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
     } else if (preset === 'PRESET_50M') {
       setShowCustomArchitect(false);
       setDurationMinutes(90);
+      const text = 'Part A: 10 Questions x 1 Mark = 10 Marks (Multiple Choice Questions)\nPart B: 2 Questions x 15 Marks = 30 Marks (Internal Choice Analytical)\nPart C: 1 Question x 10 Marks = 10 Marks (Numerical Problem Solving)';
+      setCustomPatternText(text);
       setCustomSections([
         { name: 'Part A', title: 'Multiple Choice Questions (10 x 1 = 10 Marks)', questions_count: 10, marks_per_question: 1, choice_type: 'COMPULSORY', question_type: 'MCQ' },
         { name: 'Part B', title: 'Detailed Analytical Problems (2 x 15 = 30 Marks)', questions_count: 2, marks_per_question: 15, choice_type: 'INTERNAL_CHOICE', question_type: 'LONG_ANSWER' },
@@ -207,6 +295,8 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
     } else if (preset === 'PRESET_60M') {
       setShowCustomArchitect(false);
       setDurationMinutes(120);
+      const text = 'Part A: 6 Questions x 2 Marks = 12 Marks (Fill in Blanks & Concepts)\nPart B: 3 Questions x 16 Marks = 48 Marks (Long Descriptive Problems)';
+      setCustomPatternText(text);
       setCustomSections([
         { name: 'Part A', title: 'Fill in the Blanks & Short Answer (6 x 2 = 12 Marks)', questions_count: 6, marks_per_question: 2, choice_type: 'COMPULSORY', question_type: 'FILL_IN_BLANKS' },
         { name: 'Part B', title: 'Long Descriptive Problems (3 x 16 = 48 Marks)', questions_count: 3, marks_per_question: 16, choice_type: 'INTERNAL_CHOICE', question_type: 'LONG_ANSWER' }
@@ -330,6 +420,7 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
         units_included: selectedUnits.sort((a, b) => a - b),
         custom_sections: customSections,
         faculty_prompt_instructions: facultyPromptInstructions,
+        custom_pattern_text: customPatternText,
         custom_questions_text: customQuestionsText
       });
 
@@ -769,6 +860,95 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
                       </div>
                     );
                   })}
+                </div>
+              </div>
+
+              {/* Custom Exam Question Pattern Specification Card */}
+              <div className="p-4 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/80 dark:border-indigo-800/60 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                      Custom Exam Question Pattern & Blueprint Specification
+                      <span className="text-[10px] text-indigo-700 dark:text-indigo-300 font-semibold px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/60">
+                        Custom Structure Input
+                      </span>
+                    </label>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Specify the exact question paper pattern (e.g. parts, number of questions, marks per question, and choice types).
+                    </p>
+                  </div>
+
+                  {/* Preset Pattern Quick Chips */}
+                  <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => applyPresetPattern(
+                        'Part A: 10 Questions x 2 Marks = 20 Marks (Compulsory Short Concepts)\nPart B: 5 Questions x 13 Marks = 65 Marks (Internal Choice Either/Or)\nPart C: 1 Question x 15 Marks = 15 Marks (Application / Case Study)',
+                        180,
+                        'PRESET_100M'
+                      )}
+                      className="px-2 py-1 rounded text-[10px] font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:border-indigo-300 transition"
+                    >
+                      🎓 100M Standard (20+65+15)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPresetPattern(
+                        'Part A: 10 Questions x 1 Mark = 10 Marks (Multiple Choice Questions)\nPart B: 2 Questions x 15 Marks = 30 Marks (Internal Choice Analytical)\nPart C: 1 Question x 10 Marks = 10 Marks (Numerical Problem Solving)',
+                        90,
+                        'PRESET_50M'
+                      )}
+                      className="px-2 py-1 rounded text-[10px] font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:border-indigo-300 transition"
+                    >
+                      📝 50M CIA (10+30+10)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPresetPattern(
+                        'Part A: 6 Questions x 2 Marks = 12 Marks (Fill in Blanks & Definitions)\nPart B: 3 Questions x 16 Marks = 48 Marks (Descriptive Problems Either/Or)',
+                        120,
+                        'PRESET_60M'
+                      )}
+                      className="px-2 py-1 rounded text-[10px] font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:border-indigo-300 transition"
+                    >
+                      ⏱️ 60M Midterm (12+48)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPresetPattern(
+                        'Part A: 25 Questions x 1 Mark = 25 Marks (Multiple Choice Questions with 4 Options)',
+                        45,
+                        'CUSTOM'
+                      )}
+                      className="px-2 py-1 rounded text-[10px] font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:border-indigo-300 transition"
+                    >
+                      🎯 25M MCQ Quiz
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <textarea
+                    rows={3}
+                    value={customPatternText}
+                    onChange={(e) => setCustomPatternText(e.target.value)}
+                    placeholder="Enter custom question paper pattern lines, e.g.:&#10;Part A: 5 Questions x 2 Marks = 10 Marks (Short Answer Concepts) [Compulsory]&#10;Part B: 2 Questions x 15 Marks = 30 Marks (Descriptive Problems) [Internal Choice Either/Or]&#10;Part C: 1 Question x 10 Marks = 10 Marks (Comprehensive Case Study)"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono resize-none leading-relaxed"
+                  />
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-0.5">
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                      💡 Type any pattern above and click <span className="font-semibold text-indigo-600 dark:text-indigo-400">"Apply Pattern to Section Table"</span> to auto-sync the grid below.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleAutoParsePatternText()}
+                      className="px-3 py-1 rounded-lg text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition flex items-center gap-1.5 self-end sm:self-auto shadow-xs"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Apply Pattern to Section Table
+                    </button>
+                  </div>
                 </div>
               </div>
 
