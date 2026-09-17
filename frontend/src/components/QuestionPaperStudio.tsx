@@ -36,6 +36,7 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
   const [patternPreset, setPatternPreset] = useState<string>('PRESET_100M');
   const [showCustomArchitect, setShowCustomArchitect] = useState(false);
   const [facultyPromptInstructions, setFacultyPromptInstructions] = useState('');
+  const [customQuestionsText, setCustomQuestionsText] = useState('');
   const [showMCQAnswers, setShowMCQAnswers] = useState(false);
 
   // Syllabus Units Scope & Coverage State
@@ -104,6 +105,7 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
 
   // Download Format Modal State
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
+  const [isDownloadingDirect, setIsDownloadingDirect] = useState(false);
 
   // Calculate Total Marks dynamically from customSections
   const calculatedTotalMarks = customSections.reduce((sum, sec) => {
@@ -291,6 +293,18 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
     }
   };
 
+  const handleDirectDownload = async (url: string, filename: string) => {
+    try {
+      setIsDownloadingDirect(true);
+      await api.downloadFile(url, filename);
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || 'Failed to download file');
+    } finally {
+      setIsDownloadingDirect(false);
+    }
+  };
+
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -315,7 +329,8 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
         format_type: patternPreset === 'CUSTOM' ? 'CUSTOM' : 'FORMAT_A',
         units_included: selectedUnits.sort((a, b) => a - b),
         custom_sections: customSections,
-        faculty_prompt_instructions: facultyPromptInstructions
+        faculty_prompt_instructions: facultyPromptInstructions,
+        custom_questions_text: customQuestionsText
       });
 
       setAgentSteps(result.agent_steps);
@@ -771,6 +786,29 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
                 />
               </div>
 
+              {/* Teacher Custom / Additional Questions Input */}
+              <div className="p-3.5 rounded-xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200/80 dark:border-purple-800/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                    Teacher's Custom / Additional Questions (Optional)
+                  </label>
+                  <span className="text-[10px] text-purple-700 dark:text-purple-300 font-semibold px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-900/60">
+                    Syllabus Grounded
+                  </span>
+                </div>
+                <textarea
+                  rows={2}
+                  value={customQuestionsText}
+                  onChange={(e) => setCustomQuestionsText(e.target.value)}
+                  placeholder="Paste or type any mandatory questions you want included in the question paper sets (one question per line, with optional marks e.g. 'Explain the working of CNN architectures with diagrams [13 Marks]'):"
+                  className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-purple-500 resize-none font-mono"
+                />
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                  Custom questions will be integrated into the question paper sets alongside auto-synthesized syllabus items.
+                </p>
+              </div>
+
               {/* Custom Section Builder Box */}
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3.5">
                 <div className="flex items-center justify-between">
@@ -932,23 +970,70 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => setShowMCQAnswers(!showMCQAnswers)}
-                    className="btn-secondary text-xs flex items-center gap-1.5"
+                    className="btn-secondary text-xs flex items-center gap-1 py-1 px-2.5"
                   >
                     <Eye className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                    {showMCQAnswers ? 'Hide Solutions & Notes' : 'Show Solutions & Notes'}
+                    {showMCQAnswers ? 'Hide Solutions' : 'Show Solutions'}
                   </button>
 
-                  <button
-                    onClick={() => setIsDownloadModalOpen(true)}
-                    className="btn-primary text-xs flex items-center gap-1.5"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Export Document
-                  </button>
+                  {/* 1-Click Direct Download Actions */}
+                  <div className="flex items-center gap-1 pl-1 border-l border-slate-200 dark:border-slate-700">
+                    <button
+                      type="button"
+                      disabled={isDownloadingDirect}
+                      onClick={() => handleDirectDownload(api.getExportQPPdfUrl(selectedQP.id, selectedSetCode), `${subject.code}_${selectedSetCode}.pdf`)}
+                      className="px-2 py-1 bg-red-50 hover:bg-red-100 dark:bg-red-950/50 dark:hover:bg-red-900/60 text-red-700 dark:text-red-300 rounded text-[11px] font-bold border border-red-200 dark:border-red-800 flex items-center gap-1 transition"
+                      title="Download PDF"
+                    >
+                      <Download className="w-3 h-3" />
+                      PDF
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isDownloadingDirect}
+                      onClick={() => handleDirectDownload(api.getExportQPWordUrl(selectedQP.id, selectedSetCode), `${subject.code}_${selectedSetCode}.docx`)}
+                      className="px-2 py-1 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/50 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded text-[11px] font-bold border border-blue-200 dark:border-blue-800 flex items-center gap-1 transition"
+                      title="Download Word (DOCX)"
+                    >
+                      <Download className="w-3 h-3" />
+                      Word
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isDownloadingDirect}
+                      onClick={() => handleDirectDownload(api.getExportQPLatexUrl(selectedQP.id, selectedSetCode), `${subject.code}_${selectedSetCode}.tex`)}
+                      className="px-2 py-1 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/50 dark:hover:bg-purple-900/60 text-purple-700 dark:text-purple-300 rounded text-[11px] font-bold border border-purple-200 dark:border-purple-800 flex items-center gap-1 transition"
+                      title="Download LaTeX"
+                    >
+                      <Download className="w-3 h-3" />
+                      LaTeX
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isDownloadingDirect}
+                      onClick={() => handleDirectDownload(api.getExportQPZipPackUrl(selectedQP.id), `ExamPack_${subject.code}.zip`)}
+                      className="px-2 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 text-amber-700 dark:text-amber-300 rounded text-[11px] font-bold border border-amber-200 dark:border-amber-800 flex items-center gap-1 transition"
+                      title="Download All Sets ZIP"
+                    >
+                      <Download className="w-3 h-3" />
+                      ZIP All
+                    </button>
+
+                    <button
+                      onClick={() => setIsDownloadModalOpen(true)}
+                      className="btn-primary text-xs flex items-center gap-1 py-1 px-2.5"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      More Formats
+                    </button>
+                  </div>
                 </div>
               </div>
 

@@ -291,18 +291,20 @@ class DocumentExtractorAgent:
         found_fields = []
         missing_fields = []
 
+        clean_text = text.replace('\r\n', '\n').replace('\r', '\n')
+
         # 1. Subject Code Extraction
         detected_code = ""
-        code_match = re.search(r'(?:COURSE\s+CODE|SUBJECT\s+CODE|SUB\s+CODE|CODE)[\s:–—]+([A-Z0-9]{4,10})', text, re.IGNORECASE)
+        code_match = re.search(r'(?:COURSE\s+CODE|SUBJECT\s+CODE|SUB\s+CODE|CODE)[\s:–—\-]+([A-Z0-9]{4,14})', clean_text, re.IGNORECASE)
         if code_match:
             detected_code = code_match.group(1).strip().upper()
         else:
-            # Look for standalone subject code pattern like CS8591, 21CS501, IT3401, EC8691, AI3451
-            standalone_code = re.search(r'\b([A-Z]{2,4}\s*\d{3,5}[A-Z]?|\d{2}[A-Z]{2,3}\d{3})\b', text)
+            # Standalone course code (e.g. B23ADE913, CS8591, 21CS501, IT3401, EC8691, AI3451)
+            standalone_code = re.search(r'\b([A-Z]{1,4}\d{2,4}[A-Z0-9]{1,6})\b', clean_text)
             if standalone_code:
-                detected_code = standalone_code.group(1).replace(" ", "").upper()
+                detected_code = standalone_code.group(1).upper()
             elif filename:
-                fn_code = re.search(r'\b([A-Z]{2,4}\d{3,5}[A-Z]?)\b', filename, re.IGNORECASE)
+                fn_code = re.search(r'\b([A-Z]{1,4}\d{2,4}[A-Z0-9]{1,6})\b', filename, re.IGNORECASE)
                 if fn_code:
                     detected_code = fn_code.group(1).upper()
 
@@ -313,17 +315,18 @@ class DocumentExtractorAgent:
 
         # 2. Course Title / Name Extraction
         detected_name = ""
-        title_match = re.search(r'(?:COURSE\s+TITLE|SUBJECT\s+NAME|COURSE\s+NAME|SUBJECT\s+TITLE|TITLE)[\s:–—]+([^\n\r]+)', text, re.IGNORECASE)
+        title_match = re.search(r'(?:COURSE\s+TITLE|SUBJECT\s+NAME|COURSE\s+NAME|SUBJECT\s+TITLE|TITLE)[\s:–—\-]+([^\n\r]+)', clean_text, re.IGNORECASE)
         if title_match:
             detected_name = title_match.group(1).strip()
         else:
-            lines = [l.strip() for l in text.splitlines() if l.strip()]
-            # 2a. Check if line contains detected_code (e.g. "CS3491 CRYPTOGRAPHY AND NETWORK SECURITY")
+            lines = [l.strip() for l in clean_text.splitlines() if l.strip()]
+            # 2a. Check line containing detected_code (e.g. "B23ADE913 IMAGE AND VIDEO ANALYTICS")
             if detected_code:
                 for l in lines[:25]:
                     if detected_code in l.upper():
                         cleaned = re.sub(rf'\b{re.escape(detected_code)}\b', '', l, flags=re.IGNORECASE).strip(" -:–—\t")
-                        if len(cleaned) >= 3 and not re.search(r'(?:SEMESTER|REGULATION|SYLLABUS)', cleaned, re.IGNORECASE):
+                        cleaned = re.sub(r'(?:COURSE\s+OBJECTIVES|OBJECTIVES|SYLLABUS|REGULATION|SEMESTER).*$', '', cleaned, flags=re.IGNORECASE).strip(" -:–—\t")
+                        if len(cleaned) >= 3:
                             detected_name = cleaned
                             break
 
@@ -331,12 +334,19 @@ class DocumentExtractorAgent:
             if not detected_name:
                 for l in lines[:20]:
                     if len(l) > 3:
-                        # Skip administrative or degree program headers
-                        if re.search(r'(?:ANNA\s+UNIVERSITY|AFFILIATED|REGULATION|R-?20\d\d|B\.?E\.?|B\.?TECH|M\.?E\.?|SYLLABUS|AUTONOMOUS|CURRICULUM|SEMESTER|PAGE|DEPARTMENT|CHOICE\s+BASED)', l, re.IGNORECASE):
+                        if re.search(r'(?:ANNA\s+UNIVERSITY|AFFILIATED|REGULATION|R-?20\d\d|B\.?E\.?|B\.?TECH|M\.?E\.?|SYLLABUS|AUTONOMOUS|CURRICULUM|SEMESTER|PAGE|DEPARTMENT|CHOICE\s+BASED|OBJECTIVES)', l, re.IGNORECASE):
                             continue
-                        if any(kw in l.lower() for kw in ["systems", "networks", "data", "intelligence", "computing", "database", "programming", "algorithms", "machine learning", "security", "circuits", "mathematics", "structures", "software", "mechanics"]):
+                        if any(kw in l.lower() for kw in ["systems", "networks", "data", "intelligence", "computing", "database", "programming", "algorithms", "machine learning", "security", "circuits", "mathematics", "structures", "software", "mechanics", "image", "video", "analytics", "vision"]):
                             detected_name = l.strip(" -:–—")
                             break
+
+            # 2c. Fallback to filename
+            if not detected_name and filename:
+                clean_fn = re.sub(r'[-_](?:syllabus|curriculum|units|course|r20\d\d).*\.(?:pdf|docx|txt|doc)$', '', filename, flags=re.IGNORECASE)
+                clean_fn = re.sub(r'\.(?:pdf|docx|txt|doc)$', '', clean_fn, flags=re.IGNORECASE)
+                clean_fn = re.sub(r'\b[A-Z0-9]{4,12}\b', '', clean_fn).strip(" -_")
+                if len(clean_fn) >= 3:
+                    detected_name = clean_fn.replace('_', ' ').replace('-', ' ').strip()
 
         if detected_name:
             found_fields.append("name")
@@ -345,33 +355,31 @@ class DocumentExtractorAgent:
 
         # 3. Regulation Extraction
         detected_reg = ""
-        reg_match = re.search(r'(?:REGULATIONS?|REGULATION|REG)[\s:–—]+([A-Z0-9\s\-]+)', text, re.IGNORECASE)
+        reg_match = re.search(r'(?:REGULATIONS?|REGULATION|REG)[\s:–—\-]+([A-Z0-9\s\-]+)', clean_text, re.IGNORECASE)
         if reg_match:
             cand = reg_match.group(1).strip()
-            # Extract R2021 or 2021 or similar
             sub_m = re.search(r'(R?20\d\d|R\d{2})', cand, re.IGNORECASE)
             if sub_m:
                 detected_reg = sub_m.group(1).upper()
                 if not detected_reg.startswith("R"):
                     detected_reg = f"R{detected_reg}"
         if not detected_reg:
-            standalone_reg = re.search(r'\b(R20\d\d|R1\d{3})\b', text, re.IGNORECASE)
+            standalone_reg = re.search(r'\b(R20\d\d|R1\d{3})\b', clean_text, re.IGNORECASE)
             if standalone_reg:
                 detected_reg = standalone_reg.group(1).upper()
 
         if detected_reg:
             found_fields.append("regulation")
         else:
-            detected_reg = "R2021"  # Default fallback
+            detected_reg = "R2021"  # Standard default
             missing_fields.append("regulation")
 
         # 4. Department Extraction
         detected_dept = ""
-        dept_match = re.search(r'(?:DEPARTMENT\s+OF|DEPT\s+OF|BRANCH)[\s:–—]+([^\n\r]+)', text, re.IGNORECASE)
+        dept_match = re.search(r'(?:DEPARTMENT\s+OF|DEPT\s+OF|BRANCH)[\s:–—\-]+([^\n\r]+)', clean_text, re.IGNORECASE)
         if dept_match:
             detected_dept = dept_match.group(1).strip()
         else:
-            # Match common engineering departments
             known_depts = [
                 "Computer Science and Engineering",
                 "Computer Science & Engineering",
@@ -385,7 +393,7 @@ class DocumentExtractorAgent:
                 "Mechatronics Engineering"
             ]
             for kd in known_depts:
-                if kd.lower() in text.lower():
+                if kd.lower() in clean_text.lower():
                     detected_dept = kd
                     break
 
@@ -397,7 +405,7 @@ class DocumentExtractorAgent:
 
         # 5. Semester Extraction
         detected_sem = ""
-        sem_match = re.search(r'(?:SEMESTER|SEM)[\s:–—]+([IVXLCDM]+|\d+)', text, re.IGNORECASE)
+        sem_match = re.search(r'(?:SEMESTER|SEM)[\s:–—\-]+([IVXLCDM]+|\d+)', clean_text, re.IGNORECASE)
         if sem_match:
             raw_sem = sem_match.group(1).strip().upper()
             sem_map = {"1": "I", "2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI", "7": "VII", "8": "VIII"}
@@ -409,7 +417,7 @@ class DocumentExtractorAgent:
 
         # 6. Academic Year Extraction
         detected_ay = ""
-        ay_match = re.search(r'\b(202\d\s*[-–/]\s*202\d)\b', text)
+        ay_match = re.search(r'\b(202\d\s*[-–/]\s*202\d)\b', clean_text)
         if ay_match:
             detected_ay = ay_match.group(1).replace("/", "-").replace(" ", "")
             found_fields.append("academic_year")
@@ -417,46 +425,53 @@ class DocumentExtractorAgent:
             detected_ay = "2025-2026"
             missing_fields.append("academic_year")
 
-        # 7. Objectives / Scope Description Extraction
+        # 7. Objectives / Scope Description Extraction (Strict boundary before Unit declaration)
         detected_desc = ""
-        obj_match = re.search(r'(?:OBJECTIVES?|COURSE\s+OBJECTIVES?)[\s:–—]+(.*?)(?=(?:UNIT\s*(?:I|1)|MODULE|OUTCOMES|COURSE\s+OUTCOMES|$))', text, re.IGNORECASE | re.DOTALL)
+        obj_match = re.search(
+            r'(?:OBJECTIVES?|COURSE\s+OBJECTIVES?|AIM|COURSE\s+AIM)[\s:–—\-]+(.*?)(?=(?:UNIT\s*[-:–—\s]*(?:VIII|VII|VI|IV|III|II|I|V|ONE|TWO|THREE|FOUR|FIVE|\d)|MODULE\s*[-:–—\s]*(?:I|1)|COURSE\s+OUTCOMES|OUTCOMES|$))',
+            clean_text,
+            re.IGNORECASE | re.DOTALL
+        )
         if obj_match:
             raw_obj = obj_match.group(1).strip()
-            # Clean up newlines
             clean_obj = " ".join([l.strip() for l in raw_obj.splitlines() if l.strip()])
-            detected_desc = clean_obj[:500]
+            detected_desc = clean_obj[:600]
             found_fields.append("description")
 
-        # 8. Units Extraction
-        # Look for UNIT patterns: UNIT I, UNIT 1, MODULE 1, etc.
+        # 8. Units Extraction (Matching UNIT I, UNIT-I, UNIT - I, UNIT 1, MODULE 1, etc.)
         unit_pattern = re.compile(
-            r'(?:UNIT|MODULE|CHAPTER)\s*(?:I|II|III|IV|V|\d+)\s*[:–—\s]+([^\n\r]+)',
+            r'(?:UNIT|MODULE|CHAPTER)\s*[-:–—\s]*\b(VIII|VII|VI|IV|III|II|I|V|ONE|TWO|THREE|FOUR|FIVE|[1-8])\b\s*[:–—\s\-]*([^\n\r]+)',
             re.IGNORECASE
         )
-        unit_matches = list(unit_pattern.finditer(text))
+        unit_matches = list(unit_pattern.finditer(clean_text))
         extracted_units = []
+        roman_map = {
+            'I': 1, 'II': 2, 'III': 3, 'IV': 4, 'V': 5, 'VI': 6, 'VII': 7, 'VIII': 8,
+            '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8,
+            'ONE': 1, 'TWO': 2, 'THREE': 3, 'FOUR': 4, 'FIVE': 5
+        }
 
-        if len(unit_matches) >= 2:
+        if len(unit_matches) >= 1:
             for idx, match in enumerate(unit_matches):
-                unit_num = idx + 1
-                raw_title = match.group(1).strip()
-                # Clean periods or hours from title (e.g. "INTRODUCTION TO NETWORKS 9" -> "INTRODUCTION TO NETWORKS")
-                clean_title = re.sub(r'[\(\[\{]?\s*\d+\s*(?:PERIODS|HOURS|HRS)?\s*[\)\]\}]?\s*$', '', raw_title, flags=re.IGNORECASE).strip()
+                raw_num_str = match.group(1).strip().upper()
+                unit_num = roman_map.get(raw_num_str, idx + 1)
+                raw_title = match.group(2).strip()
+                # Clean periods or hours from title (e.g. "INTRODUCTION 9" -> "INTRODUCTION")
+                clean_title = re.sub(r'[\(\[\{]?\s*\d+\s*(?:PERIODS|HOURS|HRS)?\s*[\)\]\}]?\s*$', '', raw_title, flags=re.IGNORECASE).strip(" -:–—\t")
                 
-                # Get the body between this match and the next match (or end of syllabus section)
+                # Get the body between this match and the next match
                 start_pos = match.end()
                 if idx + 1 < len(unit_matches):
                     end_pos = unit_matches[idx + 1].start()
-                    unit_body = text[start_pos:end_pos]
+                    unit_body = clean_text[start_pos:end_pos]
                 else:
-                    # Look for end markers
-                    end_match = re.search(r'(?:TOTAL\s*:\s*\d+\s*PERIODS|OUTCOMES|TEXT\s*BOOKS|REFERENCES|SUGGESTED)', text[start_pos:], re.IGNORECASE)
+                    end_match = re.search(r'(?:TOTAL\s*:\s*\d+\s*PERIODS|OUTCOMES|COURSE\s*OUTCOMES|TEXT\s*BOOKS|REFERENCES|SUGGESTED)', clean_text[start_pos:], re.IGNORECASE)
                     if end_match:
-                        unit_body = text[start_pos:start_pos + end_match.start()]
+                        unit_body = clean_text[start_pos:start_pos + end_match.start()]
                     else:
-                        unit_body = text[start_pos:start_pos + 1200]
+                        unit_body = clean_text[start_pos:start_pos + 1500]
 
-                # Extract hours if specified
+                # Extract hours
                 hours = 9
                 hours_match = re.search(r'\b(\d{1,2})\s*(?:PERIODS|HOURS|HRS)\b', raw_title + " " + unit_body, re.IGNORECASE)
                 if hours_match:
@@ -469,20 +484,14 @@ class DocumentExtractorAgent:
                 topic_candidates = []
                 for line in unit_body.splitlines():
                     line = line.strip()
-                    if not line:
+                    if not line or re.match(r'^(?:TOTAL|OUTCOME|TEXT\s*BOOK|REF|COURSE\s*OUTCOME)', line, re.IGNORECASE):
                         continue
-                    if re.match(r'^(?:TOTAL|OUTCOME|TEXT\s*BOOK|REF)', line, re.IGNORECASE):
-                        break
-                    # Split comma or dash separated topics
-                    sub_parts = re.split(r'[–—•\*\;]+', line)
+                    # Split comma, dash, bullet, or semicolon separated topics
+                    sub_parts = re.split(r'[–—•\*\;\,\-]+', line)
                     for sp in sub_parts:
-                        sp_clean = sp.strip(" -–—,;•*")
-                        if len(sp_clean) > 3 and not re.match(r'^\d+\s*(?:periods|hours)$', sp_clean, re.IGNORECASE):
+                        sp_clean = sp.strip(" -–—,;•* \t")
+                        if len(sp_clean) > 3 and not re.match(r'^\d+\s*(?:periods|hours|hrs)$', sp_clean, re.IGNORECASE):
                             topic_candidates.append(sp_clean)
-
-                if not topic_candidates:
-                    # Fallback topics from body
-                    topic_candidates = [t.strip() for t in unit_body.split(",") if len(t.strip()) > 3][:6]
 
                 if not topic_candidates:
                     topic_candidates = [
@@ -491,10 +500,16 @@ class DocumentExtractorAgent:
                         f"{clean_title} - Performance Analysis & Applications"
                     ]
 
+                # Deduplicate topics while preserving order
+                unique_topics = []
+                for t in topic_candidates:
+                    if t not in unique_topics:
+                        unique_topics.append(t)
+
                 extracted_units.append({
                     "unit_number": unit_num,
                     "title": f"Unit {unit_num}: {clean_title}" if not clean_title.lower().startswith("unit") else clean_title,
-                    "topics": topic_candidates[:8],
+                    "topics": unique_topics[:10],
                     "learning_outcomes": [f"Understand and apply concepts of Unit {unit_num}: {clean_title}"],
                     "hours": hours
                 })

@@ -11,28 +11,28 @@ def api_call(method: str, path: str, **kwargs):
             return await fn(path, **kwargs)
     return asyncio.run(_do())
 
-def get_auth_token(email="faculty@autonomous.edu", password="faculty123"):
+def get_auth_token(email="superadmin@autonomous.edu", password="SuperAdmin@2026"):
     res = api_call("POST", "/api/auth/login", json={"email": email, "password": password})
     assert res.status_code == 200, f"Login failed: {res.text}"
     return res.json()["access_token"]
 
 def get_auth_headers():
-    token = get_auth_token("faculty@autonomous.edu", "faculty123")
+    token = get_auth_token("superadmin@autonomous.edu", "SuperAdmin@2026")
     return {"Authorization": f"Bearer {token}"}
 
 def get_admin_headers():
-    token = get_auth_token("admin@autonomous.edu", "admin123")
+    token = get_auth_token("superadmin@autonomous.edu", "SuperAdmin@2026")
     return {"Authorization": f"Bearer {token}"}
 
 def test_01_auth_flow():
-    # 1. Login with seeded faculty
+    # 1. Login with super admin
     login_res = api_call("POST", "/api/auth/login", json={
-        "email": "faculty@autonomous.edu",
-        "password": "faculty123"
+        "email": "superadmin@autonomous.edu",
+        "password": "SuperAdmin@2026"
     })
     assert login_res.status_code == 200
     assert "access_token" in login_res.json()
-    assert login_res.json()["user"]["role"] == "FACULTY"
+    assert login_res.json()["user"]["role"] == "SUPER_ADMIN"
 
     # 2. Register new faculty
     reg_email = "prof_e2e_test@autonomous.edu"
@@ -288,7 +288,20 @@ def test_10_multi_user_isolation():
         "department": "Mechanical Engineering"
     })
     assert reg_res.status_code == 200
-    token_b = reg_res.json()["access_token"]
+    user_b_id = reg_res.json()["user"]["id"]
+
+    # Super Admin approves user B
+    sa_headers = get_admin_headers()
+    approve_res = api_call("PATCH", f"/api/admin/users/{user_b_id}/approval?status=APPROVED", headers=sa_headers)
+    assert approve_res.status_code == 200
+
+    # User B logs in
+    login_b = api_call("POST", "/api/auth/login", json={
+        "email": user_b_email,
+        "password": "Password123!"
+    })
+    assert login_b.status_code == 200
+    token_b = login_b.json()["access_token"]
     headers_b = {"Authorization": f"Bearer {token_b}"}
 
     # User B should see 0 subjects initially (isolated)

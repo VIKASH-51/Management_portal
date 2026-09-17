@@ -128,6 +128,8 @@ class AcademicOrchestrator:
         units_data: List[Dict[str, Any]] = None,
         custom_sections: List[Dict[str, Any]] = None,
         faculty_prompt_instructions: str = None,
+        teacher_custom_questions: List[Dict[str, Any]] = None,
+        custom_questions_text: str = None,
         template_context: str = None
     ) -> Dict[str, Any]:
         
@@ -164,6 +166,8 @@ class AcademicOrchestrator:
             units_data=units_data,
             custom_sections=custom_sections,
             faculty_prompt_instructions=faculty_prompt_instructions,
+            teacher_custom_questions=teacher_custom_questions,
+            custom_questions_text=custom_questions_text,
             template_context=template_context
         )
         agent_steps.append({

@@ -17,19 +17,13 @@ def api_call(method: str, path: str, **kwargs):
     return asyncio.run(_do())
 
 def get_auth_token():
-    res = api_call("POST", "/api/auth/login", json={"email": "faculty@autonomous.edu", "password": "faculty123"})
+    res = api_call("POST", "/api/auth/login", json={"email": "superadmin@autonomous.edu", "password": "SuperAdmin@2026"})
     if res.status_code == 200:
         return res.json()["access_token"]
-    # Fallback to registration if needed
-    api_call("POST", "/api/auth/register", json={
-        "email": "test_faculty_dynamic@autonomous.edu",
-        "password": "Password123!",
-        "full_name": "Test Faculty Dynamic",
-        "department": "CSE",
-        "designation": "Professor"
-    })
-    r2 = api_call("POST", "/api/auth/login", json={"email": "test_faculty_dynamic@autonomous.edu", "password": "Password123!"})
-    return r2.json()["access_token"]
+    res2 = api_call("POST", "/api/auth/login", json={"email": "faculty@autonomous.edu", "password": "faculty123"})
+    if res2.status_code == 200:
+        return res2.json()["access_token"]
+    return ""
 
 def test_01_document_extractor_universal_formats():
     """Test text extraction from txt, csv, and mock documents."""

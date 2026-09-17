@@ -28,6 +28,7 @@ def create_user_and_login(role="FACULTY", dept="Computer Science"):
     password = "SecurePassword123!"
     full_name = f"Prof. QA Test {unique_id}"
     
+    # 1. Register user
     reg_res = api_call("POST", "/api/auth/register", json={
         "email": email,
         "password": password,
@@ -36,14 +37,33 @@ def create_user_and_login(role="FACULTY", dept="Computer Science"):
         "department": dept
     })
     assert reg_res.status_code == 200, f"Registration failed: {reg_res.text}"
-    token = reg_res.json()["access_token"]
     user_info = reg_res.json()["user"]
+    user_id = user_info["id"]
+
+    # 2. SuperAdmin approves user
+    sa_login = api_call("POST", "/api/auth/login", json={
+        "email": "superadmin@autonomous.edu",
+        "password": "SuperAdmin@2026"
+    })
+    assert sa_login.status_code == 200, f"SuperAdmin login failed: {sa_login.text}"
+    sa_token = sa_login.json()["access_token"]
+    approve_res = api_call("PATCH", f"/api/admin/users/{user_id}/approval?status=APPROVED", headers={"Authorization": f"Bearer {sa_token}"})
+    assert approve_res.status_code == 200, f"Approval failed: {approve_res.text}"
+
+    # 3. Login as approved user
+    login_res = api_call("POST", "/api/auth/login", json={
+        "email": email,
+        "password": password
+    })
+    assert login_res.status_code == 200, f"Login failed: {login_res.text}"
+    token = login_res.json()["access_token"]
+
     return {
         "email": email,
         "password": password,
         "full_name": full_name,
         "token": token,
-        "user_id": user_info["id"],
+        "user_id": user_id,
         "headers": {"Authorization": f"Bearer {token}"}
     }
 
@@ -52,10 +72,10 @@ def create_user_and_login(role="FACULTY", dept="Computer Science"):
 # ==========================================
 def test_phase01_and_02_auth_exhaustive():
     # 1. API Health / Root
-    root_res = api_call("GET", "/")
-    assert root_res.status_code == 200
-    assert "status" in root_res.json()
-    assert root_res.json()["status"] == "active"
+    health_res = api_call("GET", "/health")
+    assert health_res.status_code == 200
+    assert "status" in health_res.json()
+    assert health_res.json()["status"] == "healthy"
 
     # 2. Registration Edge Cases
     # Empty email

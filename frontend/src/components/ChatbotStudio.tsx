@@ -345,7 +345,7 @@ export const ChatbotStudio: React.FC<ChatbotStudioProps> = ({
                   className={`p-4 rounded-xl text-xs sm:text-sm leading-relaxed whitespace-pre-wrap ${
                     isUser
                       ? 'bg-blue-600 text-white rounded-tr-none'
-                      : 'bg-white dark:bg-slate-850 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-750 rounded-tl-none shadow-xs'
+                      : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-tl-none shadow-xs'
                   }`}
                 >
                   {msg.attachedFileName && (
@@ -393,7 +393,7 @@ export const ChatbotStudio: React.FC<ChatbotStudioProps> = ({
 
                 {/* EMBEDDED ACTION CARD 1: QUESTION PAPER */}
                 {msg.embeddedCard === 'QUESTION_PAPER' && msg.cardData?.qp && (
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 space-y-3">
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <FileSpreadsheet className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -450,7 +450,7 @@ export const ChatbotStudio: React.FC<ChatbotStudioProps> = ({
 
                 {/* EMBEDDED ACTION CARD 2: ANSWER KEY */}
                 {msg.embeddedCard === 'ANSWER_KEY' && msg.cardData?.answerKeys && (
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 space-y-3">
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <CheckSquare className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -477,7 +477,7 @@ export const ChatbotStudio: React.FC<ChatbotStudioProps> = ({
 
                 {/* EMBEDDED ACTION CARD 3: QUESTION BANK */}
                 {msg.embeddedCard === 'QUESTION_BANK' && msg.cardData?.qbItems && (
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 space-y-3">
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Database className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -500,7 +500,7 @@ export const ChatbotStudio: React.FC<ChatbotStudioProps> = ({
 
                 {/* EMBEDDED ACTION CARD 4: LECTURE NOTES */}
                 {msg.embeddedCard === 'NOTES' && msg.cardData?.note && (
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 space-y-3">
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -526,7 +526,7 @@ export const ChatbotStudio: React.FC<ChatbotStudioProps> = ({
 
                 {/* EMBEDDED ACTION CARD 5: ADMIN GOVERNANCE */}
                 {msg.embeddedCard === 'ADMIN' && (
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 space-y-3">
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <ShieldCheck className="w-4 h-4 text-amber-600 dark:text-amber-400" />
@@ -549,7 +549,7 @@ export const ChatbotStudio: React.FC<ChatbotStudioProps> = ({
 
                 {/* EMBEDDED ACTION CARD 6: OBE STUDIO */}
                 {msg.embeddedCard === 'OBE' && msg.cardData?.obeData && (
-                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700 space-y-3">
+                  <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Table className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -590,7 +590,7 @@ export const ChatbotStudio: React.FC<ChatbotStudioProps> = ({
       </div>
 
       {/* Smart Quick Prompt Chips */}
-      <div className="px-4 py-2 bg-slate-100 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2 overflow-x-auto shrink-0">
+      <div className="px-4 py-2 bg-slate-100 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex items-center gap-2 overflow-x-auto shrink-0">
         <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 shrink-0">
           Faculty Actions:
         </span>

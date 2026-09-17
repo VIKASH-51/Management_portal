@@ -277,6 +277,8 @@ def generate_question_papers(req: QuestionPaperGenerateRequest, current_user: Us
         units_data=units_data,
         custom_sections=req.custom_sections,
         faculty_prompt_instructions=req.faculty_prompt_instructions,
+        teacher_custom_questions=req.teacher_custom_questions,
+        custom_questions_text=req.custom_questions_text,
         template_context=req.template_context
     )
 

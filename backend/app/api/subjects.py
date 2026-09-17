@@ -10,6 +10,27 @@ from backend.app.agents.document_extractor import DocumentExtractorAgent
 
 router = APIRouter(prefix="/subjects", tags=["Subjects"])
 
+def _serialize_subject_units(s_units: List[SyllabusUnit]) -> List[UnitSchema]:
+    """Serializes subject syllabus units, strictly deduplicating by unit_number and sorting in order 1..5."""
+    by_num = {}
+    for u in s_units:
+        u_num = u.unit_number
+        if u_num not in by_num or (u.id and by_num[u_num].id and u.id > by_num[u_num].id):
+            by_num[u_num] = u
+
+    sorted_units = [by_num[k] for k in sorted(by_num.keys())]
+    result = []
+    for u in sorted_units:
+        result.append(UnitSchema(
+            id=u.id,
+            unit_number=u.unit_number,
+            title=u.title,
+            topics=json.loads(u.topics_json or "[]"),
+            learning_outcomes=json.loads(u.learning_outcomes_json or "[]"),
+            hours=u.hours
+        ))
+    return result
+
 @router.get("", response_model=List[SubjectResponse])
 def get_subjects(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # Faculty sees their own subjects; Admin/Super Admin can see all subjects
@@ -20,17 +41,7 @@ def get_subjects(current_user: User = Depends(get_current_user), db: Session = D
         
     result = []
     for s in subjects:
-        units = []
-        for u in s.units:
-            units.append(UnitSchema(
-                id=u.id,
-                unit_number=u.unit_number,
-                title=u.title,
-                topics=json.loads(u.topics_json or "[]"),
-                learning_outcomes=json.loads(u.learning_outcomes_json or "[]"),
-                hours=u.hours
-            ))
-            
+        units = _serialize_subject_units(s.units)
         doc_count = db.query(Document).filter(Document.subject_id == s.id).count()
         notes_count = db.query(Note).filter(Note.subject_id == s.id).count()
         qp_count = db.query(QuestionPaper).filter(QuestionPaper.subject_id == s.id).count()
@@ -64,17 +75,7 @@ def get_subject_by_id(subject_id: int, current_user: User = Depends(get_current_
     if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and s.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized access to this subject")
 
-    units = [
-        UnitSchema(
-            id=u.id,
-            unit_number=u.unit_number,
-            title=u.title,
-            topics=json.loads(u.topics_json or "[]"),
-            learning_outcomes=json.loads(u.learning_outcomes_json or "[]"),
-            hours=u.hours
-        ) for u in s.units
-    ]
-
+    units = _serialize_subject_units(s.units)
     doc_count = db.query(Document).filter(Document.subject_id == s.id).count()
     notes_count = db.query(Note).filter(Note.subject_id == s.id).count()
     qp_count = db.query(QuestionPaper).filter(QuestionPaper.subject_id == s.id).count()
@@ -176,8 +177,10 @@ def update_subject(subject_id: int, subj_update: SubjectUpdate, current_user: Us
 
     # Update syllabus units if provided
     if subj_update.units is not None:
-        # Clear existing units
-        db.query(SyllabusUnit).filter(SyllabusUnit.subject_id == subject_id).delete()
+        # Clear existing units in relationship and database cleanly
+        subject.units.clear()
+        db.query(SyllabusUnit).filter(SyllabusUnit.subject_id == subject_id).delete(synchronize_session=False)
+        db.flush()
         for u in subj_update.units:
             unit_obj = SyllabusUnit(
                 subject_id=subject.id,
@@ -188,8 +191,11 @@ def update_subject(subject_id: int, subj_update: SubjectUpdate, current_user: Us
                 hours=u.hours
             )
             db.add(unit_obj)
+        db.flush()
+        db.expire(subject, ["units"])
 
     db.commit()
+    db.expire_all()
     db.refresh(subject)
     return get_subject_by_id(subject.id, current_user, db)
 
@@ -202,10 +208,10 @@ def delete_subject(subject_id: int, current_user: User = Depends(get_current_use
         raise HTTPException(status_code=403, detail="Unauthorized")
     
     # Delete associated records
-    db.query(SyllabusUnit).filter(SyllabusUnit.subject_id == subject_id).delete()
-    db.query(Document).filter(Document.subject_id == subject_id).delete()
-    db.query(Note).filter(Note.subject_id == subject_id).delete()
-    db.query(QuestionPaper).filter(QuestionPaper.subject_id == subject_id).delete()
+    db.query(SyllabusUnit).filter(SyllabusUnit.subject_id == subject_id).delete(synchronize_session=False)
+    db.query(Document).filter(Document.subject_id == subject_id).delete(synchronize_session=False)
+    db.query(Note).filter(Note.subject_id == subject_id).delete(synchronize_session=False)
+    db.query(QuestionPaper).filter(QuestionPaper.subject_id == subject_id).delete(synchronize_session=False)
     db.delete(subject)
     db.commit()
     return {"message": "Subject and associated curriculum assets deleted successfully"}
@@ -223,7 +229,45 @@ def ai_generate_syllabus(req: SyllabusGenerateRequest, current_user: User = Depe
     name_lower = name.lower()
 
     # Pre-built academic curricula for popular engineering domains + dynamic synthesis engine
-    if "machine learning" in name_lower or "ai" in name_lower or "artificial intelligence" in name_lower:
+    if "image" in name_lower or "video" in name_lower or "vision" in name_lower or "analytics" in name_lower:
+        units = [
+            UnitSchema(
+                unit_number=1,
+                title="Unit 1: Introduction to Computer Vision & Image Formation",
+                topics=["Fundamentals of Computer Vision", "Image Representation & Digitization", "Geometric Camera Models & Calibration", "Color Spaces (RGB, HSV, Lab)", "Human Visual Perception & Chromatic Adaptation"],
+                learning_outcomes=["Understand digital image representations and camera calibration mathematics", "Implement color space transformations and spatial sampling"],
+                hours=9
+            ),
+            UnitSchema(
+                unit_number=2,
+                title="Unit 2: Image Processing Techniques & Spatial Filtering",
+                topics=["Spatial Domain Filtering (Mean, Gaussian, Median)", "Frequency Domain Filtering & Fourier Transform", "Edge Detection (Sobel, Prewitt, Canny)", "Hough Transform for Line & Circle Detection", "Morphological Operations (Dilation, Erosion, Opening, Closing)"],
+                learning_outcomes=["Design spatial and frequency domain image enhancement filters", "Extract geometric features using edge detection and Hough transforms"],
+                hours=9
+            ),
+            UnitSchema(
+                unit_number=3,
+                title="Unit 3: Object Detection & Recognition in Images & Video",
+                topics=["Feature Extraction: SIFT, SURF, ORB, and HOG Descriptors", "Sliding Window & Haar Cascades Classifier", "Deep Learning Object Detection: YOLO & SSD Architectures", "Two-Stage Detectors: R-CNN, Fast R-CNN, Faster R-CNN", "Feature Matching & Homography Estimation"],
+                learning_outcomes=["Formulate feature descriptor extraction and matching pipelines", "Deploy convolutional neural network object detectors on real-time streams"],
+                hours=9
+            ),
+            UnitSchema(
+                unit_number=4,
+                title="Unit 4: Face Recognition & Gesture Analysis",
+                topics=["Face Detection Pipelines (Viola-Jones, MTCNN)", "Subspace Methods: Eigenfaces (PCA) & Fisherfaces (LDA)", "Deep Face Recognition (FaceNet, ArcFace, DeepFace)", "Hand Tracking & Landmark Estimation (MediaPipe)", "Dynamic Gesture Recognition using Hidden Markov Models (HMM) & LSTMs"],
+                learning_outcomes=["Construct biometric face recognition and verification systems", "Implement spatial-temporal gesture tracking and classification"],
+                hours=9
+            ),
+            UnitSchema(
+                unit_number=5,
+                title="Unit 5: Video Analytics & Motion Tracking",
+                topics=["Video Representation & Temporal Redundancy", "Optical Flow Estimation (Lucas-Kanade & Horn-Schunck)", "Background Subtraction & Foreground Segmentation (MOG2, KNN)", "Object Tracking: Kalman Filtering, Mean-Shift & DeepSORT", "Automated Video Surveillance, Action Recognition & Anomaly Detection"],
+                learning_outcomes=["Implement robust multi-object tracking algorithms across video sequences", "Develop intelligent automated video analytics pipelines for surveillance"],
+                hours=9
+            )
+        ]
+    elif "machine learning" in name_lower or "ai" in name_lower or "artificial intelligence" in name_lower:
         units = [
             UnitSchema(
                 unit_number=1,

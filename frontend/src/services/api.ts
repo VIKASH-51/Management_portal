@@ -253,6 +253,8 @@ export const api = {
     units_included?: number[];
     custom_sections?: any[];
     faculty_prompt_instructions?: string;
+    teacher_custom_questions?: any[];
+    custom_questions_text?: string;
     template_context?: string;
   }): Promise<{ question_paper: QuestionPaper; uniqueness_report: any; agent_steps: any[] }> {
     const res = await fetch(`${API_BASE_URL}/question-papers/generate`, {

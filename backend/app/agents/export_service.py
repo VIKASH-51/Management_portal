@@ -592,6 +592,10 @@ class ExportService:
         return file_path
 
     @classmethod
+    def generate_question_paper_text(cls, qp_data: Dict[str, Any], set_data: Dict[str, Any]) -> str:
+        return cls.generate_question_paper_txt(qp_data, set_data)
+
+    @classmethod
     def generate_all_sets_zip(cls, qp_data: Dict[str, Any], sets_data: List[Dict[str, Any]], answer_keys: List[Dict[str, Any]]) -> str:
         zip_filename = f"ExamPack_{qp_data.get('subject_code', 'SUB')}_{qp_data.get('academic_year', '2025-26')}.zip"
         zip_path = os.path.join(settings.EXPORT_DIR, zip_filename)
