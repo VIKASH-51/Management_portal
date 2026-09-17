@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User } from '../types';
-import { setAuthToken } from '../services/api';
+import { setAuthToken, API_BASE_URL } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { 
   GraduationCap, Lock, Mail, User as UserIcon, 
@@ -43,7 +43,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           throw new Error('Password must be at least 6 characters long.');
         }
 
-        const res = await fetch('http://localhost:8000/api/auth/register', {
+        const res = await fetch(`${API_BASE_URL}/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -71,7 +71,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         setPassword('');
         setConfirmPassword('');
       } else {
-        const res = await fetch('http://localhost:8000/api/auth/login', {
+        const res = await fetch(`${API_BASE_URL}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

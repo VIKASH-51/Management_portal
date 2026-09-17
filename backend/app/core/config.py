@@ -1,8 +1,9 @@
 import os
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import List
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(case_sensitive=True, extra="ignore")
     PROJECT_NAME: str = "AI Academic Assistant"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api"
@@ -27,9 +28,6 @@ class Settings(BaseSettings):
     
     UPLOAD_DIR: str = "./uploads"
     EXPORT_DIR: str = "./exports"
-
-    class Config:
-        case_sensitive = True
 
 settings = Settings()
 

@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from backend.app.core.config import settings
 from backend.app.core.database import engine, Base, SessionLocal, sync_database_schema
@@ -74,33 +75,62 @@ app.include_router(vision_router, prefix=settings.API_V1_STR)
 app.include_router(learning_router, prefix=settings.API_V1_STR)
 app.include_router(obe_router, prefix=settings.API_V1_STR)
 
-@app.get("/")
-def root():
-    return {
-        "status": "active",
-        "app": settings.PROJECT_NAME,
-        "version": settings.VERSION
-    }
+# Determine if frontend dist directory exists (for monolithic / single-container deployment)
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_FRONTEND_DIST = os.path.join(_PROJECT_ROOT, "frontend", "dist")
 
-@app.get("/health")
-def health_check():
-    return {
-        "status": "healthy",
-        "app": settings.PROJECT_NAME,
-        "version": settings.VERSION,
-        "mode": "Autonomous Institute Production Engine",
-        "multi_agent_modules": [
-            "NotesPedagogicalAgent",
-            "QuestionPaperMultiSetAgent",
-            "VisionOCRDiagramAgent",
-            "AutonomousLearningMemoryAgent",
-            "DocumentExtractorAgent",
-            "StepMarkingAnswerKeyAgent",
-            "ExamTrendPatternAgent",
-            "ExportService"
-        ]
-    }
+if os.path.isdir(_FRONTEND_DIST):
+    assets_dir = os.path.join(_FRONTEND_DIST, "assets")
+    if os.path.isdir(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="static_assets")
+
+    @app.get("/health")
+    def health_check():
+        return {
+            "status": "healthy",
+            "app": settings.PROJECT_NAME,
+            "version": settings.VERSION,
+            "mode": "Autonomous Institute Production Engine (Full-Stack Unified)"
+        }
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend_spa(full_path: str):
+        if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("openapi.json"):
+            return {"error": "API route not found"}
+        target_file = os.path.join(_FRONTEND_DIST, full_path)
+        if full_path and os.path.isfile(target_file):
+            return FileResponse(target_file)
+        return FileResponse(os.path.join(_FRONTEND_DIST, "index.html"))
+else:
+    @app.get("/")
+    def root():
+        return {
+            "status": "active",
+            "app": settings.PROJECT_NAME,
+            "version": settings.VERSION,
+            "api_docs": "/docs"
+        }
+
+    @app.get("/health")
+    def health_check():
+        return {
+            "status": "healthy",
+            "app": settings.PROJECT_NAME,
+            "version": settings.VERSION,
+            "mode": "Autonomous Institute Production Engine (API Only)",
+            "multi_agent_modules": [
+                "NotesPedagogicalAgent",
+                "QuestionPaperMultiSetAgent",
+                "VisionOCRDiagramAgent",
+                "AutonomousLearningMemoryAgent",
+                "DocumentExtractorAgent",
+                "StepMarkingAnswerKeyAgent",
+                "ExamTrendPatternAgent",
+                "ExportService"
+            ]
+        }
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=port, reload=False)
