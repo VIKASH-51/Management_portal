@@ -237,6 +237,8 @@ def generate_question_papers(req: QuestionPaperGenerateRequest, current_user: Us
         raise HTTPException(status_code=404, detail="Subject not found")
 
     # Prepare units data from subject syllabus, strictly filtering by req.units_included
+    # Prepare units data from subject syllabus, strictly filtering by req.units_included / req.units_covered
+    raw_units_filter = req.units_included if (req.units_included and len(req.units_included) > 0) else req.units_covered
     all_subject_units = []
     for u in subject.units:
         all_subject_units.append({
@@ -248,8 +250,8 @@ def generate_question_papers(req: QuestionPaperGenerateRequest, current_user: Us
         })
 
     units_data = []
-    if req.units_included and len(req.units_included) > 0:
-        units_data = [u for u in all_subject_units if u["unit_number"] in req.units_included]
+    if raw_units_filter and len(raw_units_filter) > 0:
+        units_data = [u for u in all_subject_units if u["unit_number"] in raw_units_filter]
         # If syllabus didn't have matching unit records, synthesize unit structures for the specified unit numbers
         if not units_data:
             units_data = [{
@@ -258,10 +260,26 @@ def generate_question_papers(req: QuestionPaperGenerateRequest, current_user: Us
                 "topics": [f"Unit {num} Fundamental Theory", f"Unit {num} System Protocols", f"Unit {num} Engineering Applications"],
                 "learning_outcomes": [f"Analyze and formulate solutions in Unit {num}"],
                 "hours": 9
-            } for num in req.units_included]
+            } for num in raw_units_filter]
     else:
         units_data = all_subject_units
-    effective_units = req.units_included if req.units_included and len(req.units_included) > 0 else [u.get("unit_number", idx + 1) for idx, u in enumerate(units_data)]
+    effective_units = raw_units_filter if raw_units_filter and len(raw_units_filter) > 0 else [u.get("unit_number", idx + 1) for idx, u in enumerate(units_data)]
+
+    # Custom sections / Blueprint resolution
+    effective_custom_sections = req.custom_sections
+    if not effective_custom_sections and req.blueprint:
+        effective_custom_sections = []
+        for p_key, p_val in req.blueprint.items():
+            if isinstance(p_val, dict):
+                p_m = int(p_val.get("marks_per_question", 2))
+                effective_custom_sections.append({
+                    "name": p_key.replace("_", " ").title(),
+                    "title": p_key.replace("_", " ").title(),
+                    "questions_count": int(p_val.get("questions_count", 5)),
+                    "marks_per_question": p_m,
+                    "choice_type": "INTERNAL_CHOICE" if "b" in p_key.lower() or "c" in p_key.lower() else "COMPULSORY",
+                    "question_type": "SHORT_ANSWER" if p_m <= 3 else ("CASE_STUDY" if p_m >= 15 else "LONG_ANSWER")
+                })
 
     # Merge custom pattern instructions if provided
     merged_prompt_instructions = req.faculty_prompt_instructions or ""
@@ -280,7 +298,7 @@ def generate_question_papers(req: QuestionPaperGenerateRequest, current_user: Us
         difficulty_hard_pct=req.difficulty_hard_pct,
         format_type=req.format_type,
         units_data=units_data,
-        custom_sections=req.custom_sections,
+        custom_sections=effective_custom_sections,
         faculty_prompt_instructions=merged_prompt_instructions,
         teacher_custom_questions=req.teacher_custom_questions,
         custom_questions_text=req.custom_questions_text,
@@ -291,7 +309,7 @@ def generate_question_papers(req: QuestionPaperGenerateRequest, current_user: Us
     ans_keys_data = orchestration["answer_keys"]
 
     # Format description
-    format_summary = f"Custom {len(req.custom_sections)} Sections" if req.custom_sections else "Part A (10x2) + Part B (5x13) + Part C (1x15)"
+    format_summary = f"Custom {len(effective_custom_sections)} Sections" if effective_custom_sections else "Part A (10x2) + Part B (5x13) + Part C (1x15)"
 
     # Save to database
     qp_record = QuestionPaper(

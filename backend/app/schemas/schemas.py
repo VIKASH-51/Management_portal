@@ -201,6 +201,7 @@ class QuestionPaperGenerateRequest(BaseModel):
     semester: str = "V"
     academic_year: str = "2025-2026"
     exam_name: str = "End Semester Autonomous Examination"
+    exam_type: Optional[str] = "SEMESTER"
     duration_minutes: int = 180
     total_marks: int = 100
     sets_count: int = 3  # 1 to 10
@@ -208,7 +209,9 @@ class QuestionPaperGenerateRequest(BaseModel):
     difficulty_med_pct: int = 50
     difficulty_hard_pct: int = 20
     format_type: str = "FORMAT_A"  # FORMAT_A, FORMAT_B, CUSTOM
-    units_included: List[int] = [1, 2, 3, 4, 5]
+    units_included: Optional[List[int]] = [1, 2, 3, 4, 5]
+    units_covered: Optional[List[int]] = None
+    blueprint: Optional[Dict[str, Any]] = None
     custom_sections: Optional[List[Dict[str, Any]]] = None
     faculty_prompt_instructions: Optional[str] = ""
     custom_pattern_text: Optional[str] = ""

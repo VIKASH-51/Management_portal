@@ -27,16 +27,16 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
   const [generating, setGenerating] = useState(false);
 
   // Exam Header & Config
-  const [examTitle, setExamTitle] = useState('End Semester Autonomous Examination');
-  const [durationMinutes, setDurationMinutes] = useState<number>(180);
+  const [examTitle, setExamTitle] = useState('Autonomous Examination');
+  const [durationMinutes, setDurationMinutes] = useState<number>(90);
   const [setsCount, setSetsCount] = useState<number>(3);
   const [easyPct, setEasyPct] = useState<number>(30);
   const [medPct, setMedPct] = useState<number>(50);
   const [hardPct, setHardPct] = useState<number>(20);
-  const [patternPreset, setPatternPreset] = useState<string>('PRESET_100M');
+  const [patternPreset, setPatternPreset] = useState<string>('PRESET_50M_DEFAULT');
   const [showCustomArchitect, setShowCustomArchitect] = useState(false);
   const [customPatternText, setCustomPatternText] = useState(
-    'Part A: 10 Questions x 2 Marks = 20 Marks (Compulsory Short Answers)\nPart B: 5 Questions x 13 Marks = 65 Marks (Internal Choice Either/Or)\nPart C: 1 Question x 15 Marks = 15 Marks (Application / Case Study)'
+    'Part A: 8 Questions x 1 Mark = 8 Marks (Compulsory MCQs / Objective)\nPart B: 8 Questions x 2 Marks = 16 Marks (Compulsory Short Answers)\nPart C: 2 Questions x 8 Marks = 16 Marks (Internal Choice Analytical / Derivations)\nPart D: 1 Question x 10 Marks = 10 Marks (Compulsory Comprehensive Case Study)'
   );
   const [facultyPromptInstructions, setFacultyPromptInstructions] = useState('');
   const [customQuestionsText, setCustomQuestionsText] = useState('');
@@ -81,11 +81,12 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
   const [showVerificationModal, setShowVerificationModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Custom Sections Configuration
+  // Custom Sections Configuration (Default: 8x1M + 8x2M + 2x8M + 1x10M = 50 Marks)
   const [customSections, setCustomSections] = useState<SectionConfig[]>([
-    { name: 'Part A', title: 'Short Answer & Concepts', questions_count: 10, marks_per_question: 2, choice_type: 'COMPULSORY', question_type: 'SHORT_ANSWER' },
-    { name: 'Part B', title: 'Descriptive & Analytical Problems', questions_count: 5, marks_per_question: 13, choice_type: 'INTERNAL_CHOICE', question_type: 'LONG_ANSWER' },
-    { name: 'Part C', title: 'Comprehensive Application / Case Study', questions_count: 1, marks_per_question: 15, choice_type: 'INTERNAL_CHOICE', question_type: 'CASE_STUDY' }
+    { name: 'Part A', title: 'Multiple Choice Questions (8 x 1 = 8 Marks)', questions_count: 8, marks_per_question: 1, choice_type: 'COMPULSORY', question_type: 'MCQ' },
+    { name: 'Part B', title: 'Short Answer & Core Concepts (8 x 2 = 16 Marks)', questions_count: 8, marks_per_question: 2, choice_type: 'COMPULSORY', question_type: 'SHORT_ANSWER' },
+    { name: 'Part C', title: 'Analytical & Descriptive Problems (2 x 8 = 16 Marks)', questions_count: 2, marks_per_question: 8, choice_type: 'INTERNAL_CHOICE', question_type: 'LONG_ANSWER' },
+    { name: 'Part D', title: 'Comprehensive Application / Case Study (1 x 10 = 10 Marks)', questions_count: 1, marks_per_question: 10, choice_type: 'COMPULSORY', question_type: 'CASE_STUDY' }
   ]);
 
   const [agentSteps, setAgentSteps] = useState<any[]>([]);
@@ -272,7 +273,18 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
 
   const handlePresetChange = (preset: string) => {
     setPatternPreset(preset);
-    if (preset === 'PRESET_100M') {
+    if (preset === 'PRESET_50M_DEFAULT') {
+      setShowCustomArchitect(false);
+      setDurationMinutes(90);
+      const text = 'Part A: 8 Questions x 1 Mark = 8 Marks (Compulsory MCQs / Objective)\nPart B: 8 Questions x 2 Marks = 16 Marks (Compulsory Short Answers)\nPart C: 2 Questions x 8 Marks = 16 Marks (Internal Choice Analytical / Derivations)\nPart D: 1 Question x 10 Marks = 10 Marks (Compulsory Comprehensive Case Study)';
+      setCustomPatternText(text);
+      setCustomSections([
+        { name: 'Part A', title: 'Multiple Choice Questions (8 x 1 = 8 Marks)', questions_count: 8, marks_per_question: 1, choice_type: 'COMPULSORY', question_type: 'MCQ' },
+        { name: 'Part B', title: 'Short Answer & Core Concepts (8 x 2 = 16 Marks)', questions_count: 8, marks_per_question: 2, choice_type: 'COMPULSORY', question_type: 'SHORT_ANSWER' },
+        { name: 'Part C', title: 'Analytical & Descriptive Problems (2 x 8 = 16 Marks)', questions_count: 2, marks_per_question: 8, choice_type: 'INTERNAL_CHOICE', question_type: 'LONG_ANSWER' },
+        { name: 'Part D', title: 'Comprehensive Application / Case Study (1 x 10 = 10 Marks)', questions_count: 1, marks_per_question: 10, choice_type: 'COMPULSORY', question_type: 'CASE_STUDY' }
+      ]);
+    } else if (preset === 'PRESET_100M') {
       setShowCustomArchitect(false);
       setDurationMinutes(180);
       const text = 'Part A: 10 Questions x 2 Marks = 20 Marks (Compulsory Short Concept Answers)\nPart B: 5 Questions x 13 Marks = 65 Marks (Internal Choice Either/Or)\nPart C: 1 Question x 15 Marks = 15 Marks (Comprehensive Application / Case Study)';
@@ -281,16 +293,6 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
         { name: 'Part A', title: 'Short Answer & Definitions (10 x 2 = 20 Marks)', questions_count: 10, marks_per_question: 2, choice_type: 'COMPULSORY', question_type: 'SHORT_ANSWER' },
         { name: 'Part B', title: 'Descriptive & Analytical Problems (5 x 13 = 65 Marks)', questions_count: 5, marks_per_question: 13, choice_type: 'INTERNAL_CHOICE', question_type: 'LONG_ANSWER' },
         { name: 'Part C', title: 'Application & Case Study (1 x 15 = 15 Marks)', questions_count: 1, marks_per_question: 15, choice_type: 'INTERNAL_CHOICE', question_type: 'CASE_STUDY' }
-      ]);
-    } else if (preset === 'PRESET_50M') {
-      setShowCustomArchitect(false);
-      setDurationMinutes(90);
-      const text = 'Part A: 10 Questions x 1 Mark = 10 Marks (Multiple Choice Questions)\nPart B: 2 Questions x 15 Marks = 30 Marks (Internal Choice Analytical)\nPart C: 1 Question x 10 Marks = 10 Marks (Numerical Problem Solving)';
-      setCustomPatternText(text);
-      setCustomSections([
-        { name: 'Part A', title: 'Multiple Choice Questions (10 x 1 = 10 Marks)', questions_count: 10, marks_per_question: 1, choice_type: 'COMPULSORY', question_type: 'MCQ' },
-        { name: 'Part B', title: 'Detailed Analytical Problems (2 x 15 = 30 Marks)', questions_count: 2, marks_per_question: 15, choice_type: 'INTERNAL_CHOICE', question_type: 'LONG_ANSWER' },
-        { name: 'Part C', title: 'Numerical Problem (1 x 10 = 10 Marks)', questions_count: 1, marks_per_question: 10, choice_type: 'INTERNAL_CHOICE', question_type: 'NUMERICAL' }
       ]);
     } else if (preset === 'PRESET_60M') {
       setShowCustomArchitect(false);
@@ -725,9 +727,9 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
                     onChange={(e) => handlePresetChange(e.target.value)}
                     className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
                   >
+                    <option value="PRESET_50M_DEFAULT">⭐ Standard 50 Marks (8x1M + 8x2M + 2x8M + 1x10M Compulsory)</option>
                     <option value="PRESET_100M">Autonomous 100 Marks (Part A: 20M, Part B: 65M, Part C: 15M)</option>
-                    <option value="PRESET_50M">Continuous Assessment 50 Marks (MCQ + Long + Numerical)</option>
-                    <option value="PRESET_60M">Midterm Assessment 60 Marks (Fill-in + Long)</option>
+                    <option value="PRESET_60M">Midterm Assessment 60 Marks (6x2M + 3x16M)</option>
                     <option value="CUSTOM">Custom Pattern (Configure Sections Manually)</option>
                   </select>
                 </div>
@@ -884,6 +886,17 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
                     <button
                       type="button"
                       onClick={() => applyPresetPattern(
+                        'Part A: 8 Questions x 1 Mark = 8 Marks (Compulsory MCQs / Objective)\nPart B: 8 Questions x 2 Marks = 16 Marks (Compulsory Short Answers)\nPart C: 2 Questions x 8 Marks = 16 Marks (Internal Choice Analytical / Derivations)\nPart D: 1 Question x 10 Marks = 10 Marks (Compulsory Comprehensive Case Study)',
+                        90,
+                        'PRESET_50M_DEFAULT'
+                      )}
+                      className="px-2.5 py-1 rounded text-[10px] font-bold bg-indigo-600 text-white border border-indigo-600 shadow-xs hover:bg-indigo-700 transition"
+                    >
+                      ⭐ Default 50M (8x1M + 8x2M + 2x8M + 1x10M)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPresetPattern(
                         'Part A: 10 Questions x 2 Marks = 20 Marks (Compulsory Short Concepts)\nPart B: 5 Questions x 13 Marks = 65 Marks (Internal Choice Either/Or)\nPart C: 1 Question x 15 Marks = 15 Marks (Application / Case Study)',
                         180,
                         'PRESET_100M'
@@ -891,17 +904,6 @@ export const QuestionPaperStudio: React.FC<QuestionPaperStudioProps> = ({ subjec
                       className="px-2 py-1 rounded text-[10px] font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:border-indigo-300 transition"
                     >
                       🎓 100M Standard (20+65+15)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => applyPresetPattern(
-                        'Part A: 10 Questions x 1 Mark = 10 Marks (Multiple Choice Questions)\nPart B: 2 Questions x 15 Marks = 30 Marks (Internal Choice Analytical)\nPart C: 1 Question x 10 Marks = 10 Marks (Numerical Problem Solving)',
-                        90,
-                        'PRESET_50M'
-                      )}
-                      className="px-2 py-1 rounded text-[10px] font-semibold bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950 hover:border-indigo-300 transition"
-                    >
-                      📝 50M CIA (10+30+10)
                     </button>
                     <button
                       type="button"
