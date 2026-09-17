@@ -1,8 +1,9 @@
 services:
-  # Option 1: Backend API Service on Render
+  # Option 1: Backend API Service on Render (Free Plan)
   - type: web
     name: academic-assistant-backend
     runtime: python
+    plan: free
     buildCommand: pip install -r backend/requirements.txt
     startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
     envVars:
@@ -21,10 +22,11 @@ services:
       - key: EXPORT_DIR
         value: ./exports
 
-  # Option 2: Frontend Static Site on Render
+  # Option 2: Frontend Static Site on Render (Free Plan)
   - type: web
     name: academic-assistant-frontend
     runtime: static
+    plan: free
     buildCommand: cd frontend && npm install && npm run build
     staticPublishPath: ./frontend/dist
     routes:
@@ -37,3 +39,4 @@ services:
           type: web
           name: academic-assistant-backend
           property: host
+
