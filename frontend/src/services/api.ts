@@ -6,11 +6,31 @@ import {
   SystemHealth, AuditLogItem, AIUsageSummary, OBEMatrixData
 } from '../types';
 
-export const API_BASE_URL = 
-  import.meta.env.VITE_API_BASE_URL || 
-  (typeof window !== 'undefined' && (window.location.port === '5173' || window.location.port === '3000')
-    ? `http://${window.location.hostname || 'localhost'}:8000/api` 
-    : '/api');
+export const getApiBaseUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    const custom = localStorage.getItem('academic_custom_api_url');
+    if (custom && custom.trim()) return custom.trim().replace(/\/+$/, '');
+  }
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL.trim().replace(/\/+$/, '');
+  }
+  if (typeof window !== 'undefined' && (window.location.port === '5173' || window.location.port === '3000')) {
+    return `http://${window.location.hostname || 'localhost'}:8000/api`;
+  }
+  return '/api';
+};
+
+export const API_BASE_URL = getApiBaseUrl();
+
+export const setCustomApiUrl = (url: string) => {
+  if (typeof window !== 'undefined') {
+    if (url && url.trim()) {
+      localStorage.setItem('academic_custom_api_url', url.trim().replace(/\/+$/, ''));
+    } else {
+      localStorage.removeItem('academic_custom_api_url');
+    }
+  }
+};
 
 let currentToken = localStorage.getItem('academic_token') || '';
 
