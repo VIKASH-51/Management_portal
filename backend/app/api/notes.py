@@ -171,7 +171,7 @@ def update_note(note_id: int, req: NoteUpdateRequest, current_user: User = Depen
 
     if content_changed:
         note.version += 1
-        note.updated_at = datetime.utcnow()
+        note.updated_at = datetime.now()
         v = NoteVersion(
             note_id=note.id,
             version_number=note.version,
@@ -193,7 +193,7 @@ def approve_note(note_id: int, current_user: User = Depends(get_current_user), d
         raise HTTPException(status_code=403, detail="Unauthorized to approve this note")
         
     note.status = "APPROVED"
-    note.updated_at = datetime.utcnow()
+    note.updated_at = datetime.now()
     db.commit()
     db.refresh(note)
     return format_note_response(note)

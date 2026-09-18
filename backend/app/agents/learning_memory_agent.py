@@ -72,7 +72,7 @@ class LearningMemoryAgent:
             mem.learned_insight = insight
             mem.usage_count += 1
             mem.confidence_score = min(0.99, mem.confidence_score + 0.01)
-            mem.updated_at = datetime.utcnow()
+            mem.updated_at = datetime.now()
         else:
             mem = AgentMemory(
                 agent_name=agent_name,

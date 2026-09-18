@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 
 # Auth Schemas
 class UserBase(BaseModel):
@@ -36,8 +36,7 @@ class UserResponse(UserBase):
     approval_status: str = "APPROVED"
     tenant_id: str
     created_at: datetime
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):
     access_token: str
@@ -99,8 +98,7 @@ class SubjectResponse(SubjectBase):
     document_count: Optional[int] = 0
     notes_count: Optional[int] = 0
     question_paper_count: Optional[int] = 0
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Document Schemas
 class DocumentResponse(BaseModel):
@@ -113,8 +111,7 @@ class DocumentResponse(BaseModel):
     status: str
     chunk_count: int
     created_at: datetime
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Notes Schemas
 class NoteGenerateRequest(BaseModel):
@@ -142,8 +139,7 @@ class NoteVersionResponse(BaseModel):
     content_markdown: str
     mermaid_diagram: Optional[str] = ""
     created_at: datetime
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class NoteResponse(BaseModel):
     id: int
@@ -161,8 +157,7 @@ class NoteResponse(BaseModel):
     references: List[Dict[str, Any]] = []
     created_at: datetime
     updated_at: datetime
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Question Paper Schemas
 class QuestionItemSchema(BaseModel):
@@ -182,8 +177,7 @@ class QuestionItemSchema(BaseModel):
     correct_answer: Optional[str] = ""
     explanation: Optional[str] = ""
     scenario_text: Optional[str] = ""
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class QuestionPaperSetResponse(BaseModel):
     id: int
@@ -191,8 +185,7 @@ class QuestionPaperSetResponse(BaseModel):
     title: str
     items: List[QuestionItemSchema] = []
     validation: Dict[str, Any] = {}
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class QuestionPaperGenerateRequest(BaseModel):
     subject_id: int
@@ -240,8 +233,7 @@ class QuestionPaperResponse(BaseModel):
     status: str
     created_at: datetime
     sets: List[QuestionPaperSetResponse] = []
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TemplateExtractResponse(BaseModel):
     filename: str
@@ -278,8 +270,7 @@ class AnswerKeyResponse(BaseModel):
     content_markdown: str
     marking_rubric: List[Dict[str, Any]] = []
     created_at: datetime
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Question Bank Schemas
 class QuestionBankItemCreate(BaseModel):
@@ -304,8 +295,7 @@ class QuestionBankItemCreate(BaseModel):
 class QuestionBankItemResponse(QuestionBankItemCreate):
     id: int
     created_at: datetime
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Course Outcomes & Outcome-Based Education (OBE) Schemas
 class CourseOutcomeSchema(BaseModel):
@@ -318,8 +308,7 @@ class CourseOutcomeSchema(BaseModel):
     target_attainment_pct: float = 70.0
     po_mapping: Dict[str, int] = {}  # {"PO1": 3, "PO2": 2, ..., "PSO1": 3}
     created_at: Optional[datetime] = None
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CourseOutcomeUpdateRequest(BaseModel):
     description: Optional[str] = None
@@ -415,8 +404,7 @@ class AIUsageMetricResponse(BaseModel):
     estimated_cost: float
     latency_ms: int
     created_at: datetime
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class AuditLogResponse(BaseModel):
     id: int
@@ -427,5 +415,4 @@ class AuditLogResponse(BaseModel):
     details: Dict[str, Any] = {}
     ip_address: str
     created_at: datetime
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
