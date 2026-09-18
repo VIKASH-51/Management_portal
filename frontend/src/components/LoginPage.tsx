@@ -37,14 +37,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const checkServerHealth = async () => {
     setServerStatus('checking');
     try {
-      const url = customApiInput.trim().replace(/\/+$/, '');
-      const testEndpoint = url.endsWith('/api') ? url.replace(/\/api$/, '/health') : `${url}/health`;
+      const normalized = customApiInput.trim() ? (customApiInput.trim().endsWith('/api') ? customApiInput.trim() : `${customApiInput.trim().replace(/\/+$/, '')}/api`) : getApiBaseUrl();
+      const testEndpoint = `${normalized.replace(/\/api$/, '')}/health`;
       const res = await fetch(testEndpoint, { signal: AbortSignal.timeout(5000) }).catch(() => null);
       if (res && res.ok) {
         setServerStatus('healthy');
       } else {
-        const rootRes = await fetch(url, { signal: AbortSignal.timeout(5000) }).catch(() => null);
-        if (rootRes && (rootRes.ok || rootRes.status === 404)) {
+        const apiRes = await fetch(`${normalized}/auth/me`, { signal: AbortSignal.timeout(5000) }).catch(() => null);
+        if (apiRes && (apiRes.status === 401 || apiRes.status === 200)) {
           setServerStatus('healthy');
         } else {
           setServerStatus('unreachable');
@@ -57,7 +57,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
 
   const handleSaveServerUrl = () => {
     setCustomApiUrl(customApiInput);
-    setSuccessNotice(`API base URL updated to: ${customApiInput}`);
+    const normalized = getApiBaseUrl();
+    setCustomApiInput(normalized);
+    setSuccessNotice(`API base URL updated to: ${normalized}`);
     setShowServerConfig(false);
   };
 

@@ -58,7 +58,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include Routers
+# Include Routers with standard /api prefix
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(subjects_router, prefix=settings.API_V1_STR)
 app.include_router(documents_router, prefix=settings.API_V1_STR)
@@ -74,6 +74,23 @@ app.include_router(copilot_router, prefix=settings.API_V1_STR)
 app.include_router(vision_router, prefix=settings.API_V1_STR)
 app.include_router(learning_router, prefix=settings.API_V1_STR)
 app.include_router(obe_router, prefix=settings.API_V1_STR)
+
+# Also mount direct aliases for direct API access (/auth/..., /subjects/..., etc.)
+app.include_router(auth_router)
+app.include_router(subjects_router)
+app.include_router(documents_router)
+app.include_router(notes_router)
+app.include_router(question_papers_router)
+app.include_router(answer_keys_router)
+app.include_router(question_bank_router)
+app.include_router(trends_router)
+app.include_router(research_router)
+app.include_router(export_router)
+app.include_router(admin_router)
+app.include_router(copilot_router)
+app.include_router(vision_router)
+app.include_router(learning_router)
+app.include_router(obe_router)
 
 # Determine if frontend dist directory exists (for monolithic / single-container deployment)
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

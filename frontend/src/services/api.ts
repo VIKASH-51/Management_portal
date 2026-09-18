@@ -6,13 +6,25 @@ import {
   SystemHealth, AuditLogItem, AIUsageSummary, OBEMatrixData
 } from '../types';
 
+export const normalizeApiUrl = (url: string): string => {
+  if (!url || !url.trim()) return '/api';
+  let cleaned = url.trim().replace(/\/+$/, '');
+  if (cleaned.startsWith('/')) {
+    return cleaned.endsWith('/api') ? cleaned : `${cleaned}/api`;
+  }
+  if (!cleaned.endsWith('/api')) {
+    cleaned = `${cleaned}/api`;
+  }
+  return cleaned;
+};
+
 export const getApiBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
     const custom = localStorage.getItem('academic_custom_api_url');
-    if (custom && custom.trim()) return custom.trim().replace(/\/+$/, '');
+    if (custom && custom.trim()) return normalizeApiUrl(custom);
   }
   if (import.meta.env.VITE_API_BASE_URL) {
-    return import.meta.env.VITE_API_BASE_URL.trim().replace(/\/+$/, '');
+    return normalizeApiUrl(import.meta.env.VITE_API_BASE_URL);
   }
   if (typeof window !== 'undefined' && (window.location.port === '5173' || window.location.port === '3000')) {
     return `http://${window.location.hostname || 'localhost'}:8000/api`;
@@ -25,7 +37,8 @@ export const API_BASE_URL = getApiBaseUrl();
 export const setCustomApiUrl = (url: string) => {
   if (typeof window !== 'undefined') {
     if (url && url.trim()) {
-      localStorage.setItem('academic_custom_api_url', url.trim().replace(/\/+$/, ''));
+      const normalized = normalizeApiUrl(url);
+      localStorage.setItem('academic_custom_api_url', normalized);
     } else {
       localStorage.removeItem('academic_custom_api_url');
     }
