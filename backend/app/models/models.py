@@ -1,7 +1,50 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, Boolean, Float, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Text, Boolean, Float, ForeignKey, DateTime, UniqueConstraint
 from sqlalchemy.orm import relationship
 from backend.app.core.database import Base
+
+class Role(Base):
+    __tablename__ = "roles"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(50), unique=True, index=True, nullable=False)  # SUPER_ADMIN, DEAN, STAFF
+    description = Column(String(255), default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    permissions = relationship("RolePermission", back_populates="role", cascade="all, delete-orphan")
+    users = relationship("User", back_populates="role_obj")
+
+class Permission(Base):
+    __tablename__ = "permissions"
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(100), unique=True, index=True, nullable=False)  # e.g., manage_users, delete_user
+    description = Column(String(255), default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class RolePermission(Base):
+    __tablename__ = "role_permissions"
+    id = Column(Integer, primary_key=True, index=True)
+    role_id = Column(Integer, ForeignKey("roles.id", ondelete="CASCADE"), nullable=False)
+    permission_id = Column(Integer, ForeignKey("permissions.id", ondelete="CASCADE"), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("role_id", "permission_id", name="uq_role_permission"),
+    )
+
+    role = relationship("Role", back_populates="permissions")
+    permission = relationship("Permission")
+
+class UserPermission(Base):
+    __tablename__ = "user_permissions"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    permission_id = Column(Integer, ForeignKey("permissions.id", ondelete="CASCADE"), nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "permission_id", name="uq_user_permission"),
+    )
+
+    user = relationship("User", back_populates="custom_permissions")
+    permission = relationship("Permission")
 
 class Tenant(Base):
     __tablename__ = "tenants"
@@ -15,17 +58,50 @@ class User(Base):
     email = Column(String(150), unique=True, index=True, nullable=False)
     full_name = Column(String(150), nullable=False)
     hashed_password = Column(String(255), nullable=False)
-    role = Column(String(50), default="FACULTY", index=True)  # FACULTY, ADMIN, SUPER_ADMIN
+    role = Column(String(50), default="STAFF", index=True)  # SUPER_ADMIN, DEAN, STAFF (FACULTY/ADMIN for compat)
+    role_id = Column(Integer, ForeignKey("roles.id", ondelete="SET NULL"), nullable=True)
     department = Column(String(100), default="Computer Science & Engineering")
     institution = Column(String(200), default="Autonomous Institute of Technology")
-    designation = Column(String(100), default="Associate Professor")
+    designation = Column(String(100), default="Faculty Member")
+    contact = Column(String(50), default="")
     is_active = Column(Boolean, default=True)
+    account_status = Column(String(50), default="ACTIVE", index=True)  # ACTIVE, PENDING, DEACTIVATED, REJECTED
     approval_status = Column(String(50), default="APPROVED")  # APPROVED, PENDING, REJECTED
-    tenant_id = Column(String(50), ForeignKey("tenants.id"), default="default_tenant", index=True)
+    deleted_at = Column(DateTime, nullable=True)
+    tenant_id = Column(String(50), ForeignKey("tenants.id", ondelete="SET NULL"), default="default_tenant", index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    role_obj = relationship("Role", back_populates="users", foreign_keys=[role_id])
+    custom_permissions = relationship("UserPermission", back_populates="user", cascade="all, delete-orphan")
     subjects = relationship("Subject", back_populates="owner", cascade="all, delete-orphan")
-    audit_logs = relationship("AuditLog", back_populates="user")
+    audit_logs = relationship("AuditLog", back_populates="user", foreign_keys="AuditLog.user_id")
+
+class DeletionRequest(Base):
+    __tablename__ = "deletion_requests"
+    id = Column(Integer, primary_key=True, index=True)
+    target_user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    requester_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    reason = Column(Text, nullable=False)
+    status = Column(String(50), default="PENDING", index=True)  # PENDING, APPROVED, REJECTED
+    created_at = Column(DateTime, default=datetime.utcnow)
+    resolved_at = Column(DateTime, nullable=True)
+    resolved_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    target_user = relationship("User", foreign_keys=[target_user_id])
+    requester = relationship("User", foreign_keys=[requester_id])
+    resolver = relationship("User", foreign_keys=[resolved_by])
+
+class LoginLog(Base):
+    __tablename__ = "login_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    user_email = Column(String(150), index=True, nullable=False)
+    action = Column(String(50), nullable=False)  # LOGIN_SUCCESS, LOGIN_FAILED, LOGOUT
+    ip_address = Column(String(50), default="127.0.0.1")
+    user_agent = Column(String(255), default="")
+    details_json = Column(Text, default="{}")
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 class Subject(Base):
     __tablename__ = "subjects"
@@ -283,7 +359,7 @@ class ProcessedImage(Base):
 class AuditLog(Base):
     __tablename__ = "audit_logs"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     tenant_id = Column(String(50), default="default_tenant", index=True)
     user_email = Column(String(150), default="system")
     action = Column(String(100), nullable=False)
@@ -293,12 +369,12 @@ class AuditLog(Base):
     ip_address = Column(String(50), default="127.0.0.1")
     created_at = Column(DateTime, default=datetime.utcnow)
     
-    user = relationship("User", back_populates="audit_logs")
+    user = relationship("User", back_populates="audit_logs", foreign_keys=[user_id])
 
 class AIUsageMetric(Base):
     __tablename__ = "ai_usage_metrics"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     subject_id = Column(Integer, nullable=True)
     agent_name = Column(String(100), nullable=False)
     provider = Column(String(50), default="gemini")

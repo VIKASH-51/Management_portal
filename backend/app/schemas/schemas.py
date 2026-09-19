@@ -2,18 +2,47 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, EmailStr, ConfigDict
 
+# RBAC Schemas
+class PermissionSchema(BaseModel):
+    id: int
+    code: str
+    description: Optional[str] = ""
+    created_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class RoleSchema(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = ""
+    permissions: List[str] = []
+    created_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class AssignPermissionRequest(BaseModel):
+    permission_code: str
+    granted: bool = True
+
 # Auth Schemas
 class UserBase(BaseModel):
     email: EmailStr
     full_name: str
-    role: str = "FACULTY"
-    department: str = "Computer Science & Engineering"
-    institution: str = "Autonomous Institute of Technology"
-    designation: str = "Associate Professor"
+    role: str = "STAFF"  # SUPER_ADMIN, DEAN, STAFF
+    department: Optional[str] = "Computer Science & Engineering"
+    institution: Optional[str] = "Autonomous Institute of Technology"
+    designation: Optional[str] = "Faculty Member"
+    contact: Optional[str] = ""
     approval_status: Optional[str] = "APPROVED"
+    account_status: Optional[str] = "ACTIVE"
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
+    email: EmailStr
     password: str
+    full_name: str
+    role: Optional[str] = "STAFF"  # STAFF or DEAN
+    department: Optional[str] = "Computer Science & Engineering"
+    institution: Optional[str] = "Autonomous Institute of Technology"
+    designation: Optional[str] = "Faculty Member"
+    contact: Optional[str] = ""
     tenant_id: Optional[str] = "default_tenant"
 
 class UserLogin(BaseModel):
@@ -25,6 +54,7 @@ class UserProfileUpdate(BaseModel):
     department: Optional[str] = None
     institution: Optional[str] = None
     designation: Optional[str] = None
+    contact: Optional[str] = None
     password: Optional[str] = None
 
 class UserApprovalRequest(BaseModel):
@@ -33,15 +63,66 @@ class UserApprovalRequest(BaseModel):
 class UserResponse(UserBase):
     id: int
     is_active: bool
+    account_status: str = "ACTIVE"
     approval_status: str = "APPROVED"
+    deleted_at: Optional[datetime] = None
     tenant_id: str
     created_at: datetime
+    permissions: List[str] = []
+    model_config = ConfigDict(from_attributes=True)
+
+class PublicRosterUserResponse(BaseModel):
+    id: int
+    full_name: str
+    contact: Optional[str] = ""
+    role: str
+    designation: Optional[str] = ""
+    department: Optional[str] = ""
     model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
+
+# Deletion Workflow Schemas
+class DeletionRequestCreate(BaseModel):
+    target_user_id: int
+    reason: str
+
+class DeletionRequestResolve(BaseModel):
+    action: str  # APPROVE, REJECT
+
+class DeletionRequestResponse(BaseModel):
+    id: int
+    target_user_id: int
+    target_email: Optional[str] = None
+    target_name: Optional[str] = None
+    target_role: Optional[str] = None
+    requester_id: int
+    requester_email: Optional[str] = None
+    requester_name: Optional[str] = None
+    reason: str
+    status: str
+    created_at: datetime
+    resolved_at: Optional[datetime] = None
+    resolved_by: Optional[int] = None
+    resolver_email: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+class PermanentDeleteRequest(BaseModel):
+    confirm_email: str
+
+class LoginLogResponse(BaseModel):
+    id: int
+    user_id: Optional[int] = None
+    user_email: str
+    action: str
+    ip_address: str
+    user_agent: str
+    details: Dict[str, Any] = {}
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
 
 # Subject & Unit Schemas
 class UnitSchema(BaseModel):

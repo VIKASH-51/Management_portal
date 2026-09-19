@@ -11,7 +11,11 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     
-    DATABASE_URL: str = "sqlite:///./academic_assistant.db"
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./academic_assistant.db")
+    
+    # Super Admin Initial Credentials (read from environment only, never committed)
+    SUPER_ADMIN_EMAIL: str = os.getenv("SUPER_ADMIN_EMAIL", "superadmin@autonomous.edu")
+    SUPER_ADMIN_PASSWORD: str = os.getenv("SUPER_ADMIN_PASSWORD", "SuperAdmin@2026")
     
     ALLOWED_ORIGINS: List[str] = [
         "http://localhost:5173",
@@ -28,6 +32,13 @@ class Settings(BaseSettings):
     
     UPLOAD_DIR: str = "./uploads"
     EXPORT_DIR: str = "./exports"
+
+    @property
+    def SQLALCHEMY_DATABASE_URI(self) -> str:
+        url = self.DATABASE_URL
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
+        return url
 
 settings = Settings()
 
