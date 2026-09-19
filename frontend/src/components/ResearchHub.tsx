@@ -7,19 +7,25 @@ import {
 } from 'lucide-react';
 
 interface ResearchHubProps {
-  subject: Subject;
+  subject: Subject | null;
+  onOpenCreateCourse?: () => void;
 }
 
-export const ResearchHub: React.FC<ResearchHubProps> = ({ subject }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'BOOKS' | 'YOUTUBE' | 'CITATIONS'>('BOOKS');
+export const ResearchHub: React.FC<ResearchHubProps> = ({ subject, onOpenCreateCourse }) => {
+  const [activeSubTab, setActiveSubTab] = useState<'BOOKS' | 'YOUTUBE' | 'CITATIONS'>(subject ? 'BOOKS' : 'CITATIONS');
   const [books, setBooks] = useState<BookRecommendation[]>([]);
   const [youtube, setYoutube] = useState<YouTubeTutorial[]>([]);
   const [citations, setCitations] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState('TCP Congestion Control RFC standards');
+  const [searchQuery, setSearchQuery] = useState(subject ? `${subject.name} principles and standards` : 'Machine Learning neural network architectures');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchResources = async () => {
+      if (!subject?.id) {
+        setBooks([]);
+        setYoutube([]);
+        return;
+      }
       try {
         setLoading(true);
         const [booksData, ytData] = await Promise.all([
@@ -35,7 +41,7 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ subject }) => {
       }
     };
     fetchResources();
-  }, [subject.id]);
+  }, [subject?.id]);
 
   const handleSearchCitations = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +67,7 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ subject }) => {
             Academic Research & Educational Resource Hub
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Verified Bibliographic Citations • Prescribed Textbooks with ISBNs • Curated Video Lectures
+            {subject ? `Subject: ${subject.code} — ${subject.name}` : 'Autonomous Research Literature & Reference Citations'}
           </p>
         </div>
 
@@ -70,20 +76,20 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ subject }) => {
           <button
             onClick={() => setActiveSubTab('BOOKS')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-              activeSubTab === 'BOOKS' ? 'bg-indigo-600 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              activeSubTab === 'BOOKS' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Book className="w-3.5 h-3.5" />
-            Textbooks ({books.length})
+            Textbooks {subject ? `(${books.length})` : ''}
           </button>
           <button
             onClick={() => setActiveSubTab('YOUTUBE')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-              activeSubTab === 'YOUTUBE' ? 'bg-indigo-600 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              activeSubTab === 'YOUTUBE' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Video className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
-            Video Tutorials ({youtube.length})
+            Video Tutorials {subject ? `(${youtube.length})` : ''}
           </button>
           <button
             onClick={() => {
@@ -91,7 +97,7 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ subject }) => {
               if (citations.length === 0) handleSearchCitations({ preventDefault: () => {} } as any);
             }}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-              activeSubTab === 'CITATIONS' ? 'bg-indigo-600 text-white shadow' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              activeSubTab === 'CITATIONS' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Search className="w-3.5 h-3.5" />
@@ -100,8 +106,27 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ subject }) => {
         </div>
       </div>
 
+      {/* No Subject Alert Banner for course-specific resources */}
+      {!subject && activeSubTab !== 'CITATIONS' && (
+        <div className="p-8 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3 shadow-md">
+          <Compass className="w-8 h-8 text-indigo-500 mx-auto" />
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">Course Workspace Not Selected</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+            Create or select a course to automatically generate prescribed textbook lists and syllabus-aligned video lectures. You can also search live research citations using the <strong>Verified Citations</strong> tab.
+          </p>
+          {onOpenCreateCourse && (
+            <button
+              onClick={onOpenCreateCourse}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold shadow-md transition"
+            >
+              + Create Course / Subject
+            </button>
+          )}
+        </div>
+      )}
+
       {/* BOOKS TAB */}
-      {activeSubTab === 'BOOKS' && (
+      {activeSubTab === 'BOOKS' && subject && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {books.map((book, idx) => (
             <div key={idx} className="academic-glass bg-white dark:bg-slate-900/80 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 academic-card-hover shadow-xl">
@@ -138,7 +163,7 @@ export const ResearchHub: React.FC<ResearchHubProps> = ({ subject }) => {
       )}
 
       {/* YOUTUBE TAB */}
-      {activeSubTab === 'YOUTUBE' && (
+      {activeSubTab === 'YOUTUBE' && subject && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {youtube.map((vid, idx) => (
             <div key={idx} className="academic-glass bg-white dark:bg-slate-900/80 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3 academic-card-hover shadow-xl">

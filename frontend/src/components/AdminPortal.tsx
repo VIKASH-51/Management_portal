@@ -237,7 +237,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ currentUser }) => {
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
             activeSubTab === 'APPROVALS'
               ? 'bg-blue-600 text-white shadow-xs'
-              : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+              : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <UserCheck className="w-4 h-4" />
@@ -254,7 +254,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ currentUser }) => {
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
             activeSubTab === 'DELETION_REQUESTS'
               ? 'bg-blue-600 text-white shadow-xs'
-              : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+              : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <UserMinus className="w-4 h-4" />
@@ -271,7 +271,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ currentUser }) => {
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
             activeSubTab === 'USERS'
               ? 'bg-blue-600 text-white shadow-xs'
-              : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+              : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <Users className="w-4 h-4" />
@@ -283,7 +283,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ currentUser }) => {
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
             activeSubTab === 'EXAM_APPROVALS'
               ? 'bg-blue-600 text-white shadow-xs'
-              : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+              : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <FileCheck className="w-4 h-4" />
@@ -296,7 +296,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ currentUser }) => {
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
               activeSubTab === 'RBAC_ROLES'
                 ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <KeyRound className="w-4 h-4" />
@@ -310,7 +310,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ currentUser }) => {
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
               activeSubTab === 'AUDIT'
                 ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Shield className="w-4 h-4" />
@@ -323,7 +323,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ currentUser }) => {
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
             activeSubTab === 'HEALTH'
               ? 'bg-blue-600 text-white shadow-xs'
-              : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+              : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <Activity className="w-4 h-4" />
@@ -335,7 +335,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({ currentUser }) => {
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
             activeSubTab === 'AI_COST'
               ? 'bg-blue-600 text-white shadow-xs'
-              : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100'
+              : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
           <DollarSign className="w-4 h-4" />

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User, Subject, Role } from './types';
 import { api, clearAuthToken } from './services/api';
 import { ThemeProvider } from './context/ThemeContext';
+import { LayoutDashboard } from 'lucide-react';
 import { LoginPage } from './components/LoginPage';
 import { Header } from './components/Header';
 import { Sidebar, TabType } from './components/Sidebar';
@@ -158,25 +159,34 @@ function AppContent() {
             <VisionStudio subject={selectedSubject} />
           )}
 
-          {/* Empty State when no course is created/selected for subject-specific tabs */}
-          {!selectedSubject && activeTab !== 'CHATBOT' && activeTab !== 'ADMIN' && activeTab !== 'LEARNING' && activeTab !== 'VISION' && (
+          {/* References & Literature Hub */}
+          {activeTab === 'RESEARCH' && (
+            <ResearchHub
+              subject={selectedSubject}
+              onOpenCreateCourse={() => setIsCreateModalOpen(true)}
+            />
+          )}
+
+          {/* Overview Tab when no subject exists */}
+          {activeTab === 'OVERVIEW' && !selectedSubject && (
             <EmptyWorkspace
               onCreateCourse={() => setIsCreateModalOpen(true)}
               onNavigateTab={setActiveTab}
             />
           )}
 
-          {/* Subject-specific Tabs */}
+          {/* Overview Tab when subject exists */}
+          {activeTab === 'OVERVIEW' && selectedSubject && (
+            <SubjectOverview
+              subject={selectedSubject}
+              onNavigate={setActiveTab}
+              onEditSubject={() => setIsEditModalOpen(true)}
+            />
+          )}
+
+          {/* Subject-specific Tabs when subject exists */}
           {selectedSubject && (
             <>
-              {activeTab === 'OVERVIEW' && (
-                <SubjectOverview
-                  subject={selectedSubject}
-                  onNavigate={setActiveTab}
-                  onEditSubject={() => setIsEditModalOpen(true)}
-                />
-              )}
-
               {activeTab === 'OBE' && (
                 <OBEStudio subject={selectedSubject} />
               )}
@@ -204,11 +214,50 @@ function AppContent() {
               {activeTab === 'TRENDS' && (
                 <TrendAnalyzer subject={selectedSubject} />
               )}
-
-              {activeTab === 'RESEARCH' && (
-                <ResearchHub subject={selectedSubject} />
-              )}
             </>
+          )}
+
+          {/* Prompt banner when clicking subject-dependent studios before a course is created */}
+          {!selectedSubject && activeTab !== 'CHATBOT' && activeTab !== 'ADMIN' && activeTab !== 'LEARNING' && activeTab !== 'VISION' && activeTab !== 'RESEARCH' && activeTab !== 'OVERVIEW' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div className="p-8 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center space-y-4 max-w-xl mx-auto shadow-xl">
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 mx-auto flex items-center justify-center">
+                  <LayoutDashboard className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                    Course Workspace Required
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">
+                    You have navigated to{' '}
+                    <span className="font-semibold text-blue-600 dark:text-blue-400">
+                      {activeTab === 'QUESTION_PAPERS' && 'Exam Paper Creator'}
+                      {activeTab === 'NOTES' && 'Lecture Notes & Handouts'}
+                      {activeTab === 'ANSWER_KEYS' && 'Marking Schemes & Rubrics'}
+                      {activeTab === 'QUESTION_BANK' && 'Course Question Bank'}
+                      {activeTab === 'OBE' && 'OBE & NBA Matrix'}
+                      {activeTab === 'DOCUMENTS' && 'Syllabus & Course Vault'}
+                      {activeTab === 'TRENDS' && '5-Yr Exam Trend Analyzer'}
+                    </span>
+                    . To generate syllabus-aligned autonomous content, please initialize your first course workspace.
+                  </p>
+                </div>
+                <div className="flex justify-center gap-3 pt-2">
+                  <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-md transition flex items-center gap-2 cursor-pointer"
+                  >
+                    <span>+ Create Course Workspace</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('OVERVIEW')}
+                    className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-semibold transition cursor-pointer"
+                  >
+                    Back to Overview
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
         </main>
       </div>
