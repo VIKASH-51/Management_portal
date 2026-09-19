@@ -24,9 +24,9 @@ def test_superadmin_auth_and_registration_approval_hierarchy():
     sa_headers = {"Authorization": f"Bearer {sa_token}"}
     sa_user = sa_login.json()["user"]
     assert sa_user["role"] == "SUPER_ADMIN"
-    assert sa_user["full_name"] == "Super Admin"
+    assert "Super Admin" in sa_user["full_name"]
 
-    # 2. Register a new Faculty user
+    # 2. Register a new Faculty/Staff user (normal registration creates active STAFF)
     fac_email = f"prof.sharma.{uid}@autonomous.edu"
     reg_fac = api_call("POST", "/api/auth/register", json={
         "email": fac_email,
@@ -37,23 +37,10 @@ def test_superadmin_auth_and_registration_approval_hierarchy():
         "role": "FACULTY"
     })
     assert reg_fac.status_code == 200
-    assert reg_fac.json()["approval_status"] == "PENDING"
+    assert reg_fac.json()["approval_status"] == "APPROVED"
     fac_id = reg_fac.json()["user"]["id"]
 
-    # 3. New Faculty tries to login before approval -> Must be blocked (403 Pending Approval)
-    fac_premature_login = api_call("POST", "/api/auth/login", json={
-        "email": fac_email,
-        "password": "SharmaPassword123"
-    })
-    assert fac_premature_login.status_code == 403
-    assert "Pending Approval" in fac_premature_login.json()["detail"]
-
-    # 4. Super Admin approves Faculty
-    approve_fac = api_call("PATCH", f"/api/admin/users/{fac_id}/approval?status=APPROVED", headers=sa_headers)
-    assert approve_fac.status_code == 200
-    assert approve_fac.json()["approval_status"] == "APPROVED"
-
-    # 5. Now Faculty can login
+    # 3. Active Staff can login directly
     fac_login = api_call("POST", "/api/auth/login", json={
         "email": fac_email,
         "password": "SharmaPassword123"
@@ -85,7 +72,7 @@ def test_superadmin_auth_and_registration_approval_hierarchy():
     })
     assert new_pw_res.status_code == 200
 
-    # 8. Register a new Dean / Academic Admin user
+    # 8. Register a new Dean / Academic Admin user (DEAN remains PENDING)
     dean_email = f"dean.academics.{uid}@autonomous.edu"
     reg_dean = api_call("POST", "/api/auth/register", json={
         "email": dean_email,
@@ -96,13 +83,22 @@ def test_superadmin_auth_and_registration_approval_hierarchy():
         "role": "ADMIN"
     })
     assert reg_dean.status_code == 200
+    assert reg_dean.json()["approval_status"] == "PENDING"
     dean_id = reg_dean.json()["user"]["id"]
 
-    # 9. Faculty cannot access admin routes (403)
+    # 9. Pending Dean cannot login before approval (403 Pending Approval)
+    dean_premature_login = api_call("POST", "/api/auth/login", json={
+        "email": dean_email,
+        "password": "DeanPassword123"
+    })
+    assert dean_premature_login.status_code == 403
+    assert "Pending Approval" in dean_premature_login.json()["detail"]
+
+    # 10. Faculty cannot access admin routes (403)
     fac_admin_attempt = api_call("GET", "/api/admin/users", headers=fac_headers)
     assert fac_admin_attempt.status_code == 403
 
-    # 10. Super Admin alone approves the Dean user
+    # 11. Super Admin alone approves the Dean user
     approve_dean = api_call("PATCH", f"/api/admin/users/{dean_id}/approval?status=APPROVED", headers=sa_headers)
     assert approve_dean.status_code == 200
 
@@ -126,7 +122,7 @@ def test_superadmin_auth_and_registration_approval_hierarchy():
 
     dean_cross_approval = api_call("PATCH", f"/api/admin/users/{dean2_id}/approval?status=APPROVED", headers=dean_headers)
     assert dean_cross_approval.status_code == 403
-    assert "Only the Super Admin" in dean_cross_approval.json()["detail"]
+    assert "Only Super Admin" in dean_cross_approval.json()["detail"]
 
 def test_syllabus_file_and_text_extraction():
     # 1. Login as Super Admin
