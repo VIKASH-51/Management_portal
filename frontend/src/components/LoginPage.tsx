@@ -3,10 +3,10 @@ import { User } from '../types';
 import { setAuthToken, getApiBaseUrl, setCustomApiUrl } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { 
-  GraduationCap, Lock, Mail, User as UserIcon, 
+  Lock, Mail, User as UserIcon, 
   Building, ArrowRight, ShieldCheck, AlertCircle, Sun, Moon,
-  School, Landmark, CheckCircle2, UserCheck, Shield, Eye, EyeOff,
-  Server, RefreshCw, KeyRound, Sparkles
+  Landmark, CheckCircle2, UserCheck, Shield, Eye, EyeOff,
+  Server, RefreshCw, Info
 } from 'lucide-react';
 
 interface LoginPageProps {
@@ -22,9 +22,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [fullName, setFullName] = useState('');
-  const [requestedRole, setRequestedRole] = useState<'FACULTY' | 'ADMIN'>('FACULTY');
-  const [department, setDepartment] = useState('Computer Science & Engineering');
-  const [institution, setInstitution] = useState('Autonomous Institute of Technology');
+  const [requestedRole, setRequestedRole] = useState<'STAFF' | 'DEAN'>('STAFF');
+  const [department, setDepartment] = useState('');
+  const [institution, setInstitution] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
@@ -63,13 +63,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     setShowServerConfig(false);
   };
 
-  const quickFill = (userEmail: string, userPass: string) => {
-    setEmail(userEmail);
-    setPassword(userPass);
-    setIsRegister(false);
-    setError(null);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -93,11 +86,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           body: JSON.stringify({
             email: email.trim().toLowerCase(),
             password,
-            full_name: fullName.trim() || 'Professor',
-            department: department.trim(),
-            institution: institution.trim(),
+            full_name: fullName.trim(),
+            department: department.trim() || undefined,
+            institution: institution.trim() || undefined,
             role: requestedRole,
-            designation: requestedRole === 'ADMIN' ? 'Academic Dean' : 'Faculty Member',
+            designation: requestedRole === 'DEAN' ? 'Academic Dean (Pending Approval)' : 'Faculty Member',
             tenant_id: 'default_tenant'
           })
         });
@@ -107,9 +100,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           throw new Error(data.detail || `Registration failed (${res.status} ${res.statusText})`);
         }
 
-        setSuccessNotice(
-          `Registration submitted for ${fullName.trim()} (${requestedRole === 'ADMIN' ? 'Dean Office' : 'Faculty'}). Your account is awaiting authorization from the administrator. Once approved, you can sign in.`
-        );
+        if (requestedRole === 'DEAN') {
+          setSuccessNotice(
+            `Dean registration submitted for ${fullName.trim()}. Your account is held in Pending status and requires Super Admin authorization before you can sign in.`
+          );
+        } else {
+          setSuccessNotice(
+            `Staff account created successfully for ${fullName.trim()}. You may now sign in using your credentials.`
+          );
+        }
+
         setIsRegister(false);
         setPassword('');
         setConfirmPassword('');
@@ -148,7 +148,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         <button
           onClick={() => setShowServerConfig(!showServerConfig)}
           title="Configure API Server URL"
-          className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 shadow-sm transition flex items-center gap-1.5 text-xs font-medium"
+          className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 shadow-xs transition flex items-center gap-1.5 text-xs font-medium"
         >
           <Server className="w-4 h-4 text-blue-500" />
           <span className="hidden sm:inline">Server Config</span>
@@ -157,7 +157,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         <button
           onClick={toggleTheme}
           title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
-          className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-700 dark:text-amber-400 shadow-sm transition"
+          className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 text-slate-700 dark:text-amber-400 shadow-xs transition"
         >
           {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
@@ -178,7 +178,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           </p>
         </div>
 
-        {/* Server Config Drawer / Modal */}
+        {/* Server Config Drawer */}
         {showServerConfig && (
           <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-blue-300 dark:border-blue-900 text-xs space-y-2.5">
             <div className="flex items-center justify-between font-semibold text-slate-800 dark:text-slate-200">
@@ -201,8 +201,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 type="text"
                 value={customApiInput}
                 onChange={(e) => setCustomApiInput(e.target.value)}
-                placeholder="e.g. https://your-backend.onrender.com/api"
-                className="flex-1 px-2.5 py-1.5 rounded-md bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-xs"
+                placeholder="https://your-api.onrender.com/api"
+                className="flex-1 px-2.5 py-1.5 rounded-md bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder-slate-400"
               />
               <button
                 type="button"
@@ -235,41 +235,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             </div>
           </div>
         )}
-
-        {/* 1-Click Quick Demo Login Chips */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-            <span className="flex items-center gap-1">
-              <KeyRound className="w-3 h-3 text-amber-500" /> Quick Sign-In Accounts:
-            </span>
-          </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            <button
-              type="button"
-              onClick={() => quickFill('superadmin@autonomous.edu', 'SuperAdmin@2026')}
-              className="p-1.5 rounded-lg border border-purple-200 dark:border-purple-900/50 bg-purple-50/70 dark:bg-purple-950/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 text-[11px] font-semibold text-center transition"
-              title="Super Admin (superadmin@autonomous.edu / SuperAdmin@2026)"
-            >
-              🛡️ Super Admin
-            </button>
-            <button
-              type="button"
-              onClick={() => quickFill('dean@autonomous.edu', 'Admin@123')}
-              className="p-1.5 rounded-lg border border-amber-200 dark:border-amber-900/50 bg-amber-50/70 dark:bg-amber-950/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 text-amber-700 dark:text-amber-300 text-[11px] font-semibold text-center transition"
-              title="Dean Admin (dean@autonomous.edu / Admin@123)"
-            >
-              🏛️ Dean (Admin)
-            </button>
-            <button
-              type="button"
-              onClick={() => quickFill('faculty@autonomous.edu', 'Faculty@123')}
-              className="p-1.5 rounded-lg border border-blue-200 dark:border-blue-900/50 bg-blue-50/70 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-[11px] font-semibold text-center transition"
-              title="Faculty (faculty@autonomous.edu / Faculty@123)"
-            >
-              🎓 Faculty
-            </button>
-          </div>
-        </div>
 
         {/* Success Alert */}
         {successNotice && (
@@ -330,41 +295,48 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           {isRegister && (
             <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Institutional Role <span className="text-rose-500">*</span>
+                Requested Account Type <span className="text-rose-500">*</span>
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => setRequestedRole('FACULTY')}
+                  onClick={() => setRequestedRole('STAFF')}
                   className={`p-2.5 rounded-lg border text-left text-xs font-semibold flex items-center gap-2 transition ${
-                    requestedRole === 'FACULTY'
+                    requestedRole === 'STAFF'
                       ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-500 text-blue-700 dark:text-blue-300 shadow-xs'
                       : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                   }`}
                 >
                   <UserCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   <div>
-                    <p className="leading-tight">Faculty</p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">Instructor / Prof</p>
+                    <p className="leading-tight">Staff / Faculty</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">Academic Teaching</p>
                   </div>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setRequestedRole('ADMIN')}
+                  onClick={() => setRequestedRole('DEAN')}
                   className={`p-2.5 rounded-lg border text-left text-xs font-semibold flex items-center gap-2 transition ${
-                    requestedRole === 'ADMIN'
+                    requestedRole === 'DEAN'
                       ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-500 text-amber-700 dark:text-amber-300 shadow-xs'
                       : 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                   }`}
                 >
                   <Shield className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                   <div>
-                    <p className="leading-tight">Dean (Admin)</p>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">Academic Office</p>
+                    <p className="leading-tight">Dean (Approval Req.)</p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">Academic Governance</p>
                   </div>
                 </button>
               </div>
+
+              {requestedRole === 'DEAN' && (
+                <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] text-amber-800 dark:text-amber-300 flex items-start gap-1.5">
+                  <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>Dean accounts require authorization from the Super Administrator before access is enabled.</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -372,14 +344,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           {isRegister && (
             <div className="space-y-1">
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Full Name & Title <span className="text-rose-500">*</span>
+                Full Name <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <UserIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Dr. K. Ramanathan"
+                  placeholder="Enter full name"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-9 pr-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -391,14 +363,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           {/* Institutional Email */}
           <div className="space-y-1">
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Institutional Email ID <span className="text-rose-500">*</span>
+              Institutional Email Address <span className="text-rose-500">*</span>
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="email"
                 required
-                placeholder="username@autonomous.edu"
+                placeholder="name@institution.edu"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-9 pr-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -464,13 +436,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
           {isRegister && (
             <div className="space-y-1">
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Academic Department
+                Department
               </label>
               <div className="relative">
                 <Building className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Computer Science & Engineering"
+                  placeholder="e.g. Computer Science & Engineering"
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
                   className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg pl-9 pr-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -485,7 +457,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
             disabled={loading}
             className="w-full btn-primary text-xs flex items-center justify-center gap-2 py-2.5 mt-2"
           >
-            <span>{isRegister ? 'Submit Account for Approval' : 'Sign In to Portal'}</span>
+            <span>{isRegister ? 'Register Account' : 'Sign In to Portal'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
@@ -494,8 +466,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         <div className="pt-1 text-center">
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
             {isRegister 
-              ? 'New user accounts are submitted with pending status and require Super Admin / Dean approval before sign in.'
-              : 'Sign in with your verified institutional email and password to access the academic workspace.'
+              ? 'Institutional user registration. Dean role requests require Super Admin authorization.'
+              : 'Sign in with your verified institutional email and password.'
             }
           </p>
         </div>
@@ -503,7 +475,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         {/* Footer Security Badge */}
         <div className="pt-2 border-t border-slate-200 dark:border-slate-800 text-center text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-          <span>Institutional Multi-Tenant Security & Role Isolation</span>
+          <span>Institutional Multi-Tenant Security & Role-Based Access Control</span>
         </div>
       </div>
     </div>

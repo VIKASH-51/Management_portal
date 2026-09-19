@@ -82,28 +82,13 @@ function AppContent() {
     await fetchSubjects();
   };
 
-  const handleLogout = () => {
-    clearAuthToken();
+  const handleLogout = async () => {
+    await api.logout();
     setCurrentUser(null);
     setIsAuthenticated(false);
     setSubjects([]);
     setSelectedSubject(null);
     setActiveTab('OVERVIEW');
-  };
-
-  const handleSwitchRole = async (role: Role) => {
-    try {
-      const authData = await api.switchRole(role);
-      setCurrentUser(authData.user);
-      if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
-        setActiveTab('ADMIN');
-      } else if (activeTab === 'ADMIN') {
-        setActiveTab('CHATBOT');
-      }
-      await fetchSubjects();
-    } catch (err) {
-      console.error('Failed to switch role:', err);
-    }
   };
 
   const handleSubjectCreated = (newSubj: Subject) => {
@@ -123,13 +108,12 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#07090e] text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
-      {/* Header */}
+      {/* Top Navigation Bar */}
       <Header
         currentUser={currentUser}
         subjects={subjects}
         selectedSubject={selectedSubject}
         onSelectSubject={(subj) => setSelectedSubject(subj)}
-        onSwitchRole={handleSwitchRole}
         onToggleCopilot={() => setIsCopilotOpen(!isCopilotOpen)}
         isCopilotOpen={isCopilotOpen}
         onOpenCreateCourse={() => setIsCreateModalOpen(true)}

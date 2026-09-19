@@ -45,18 +45,18 @@ export const Header: React.FC<HeaderProps> = ({
         </span>
       );
     }
-    if (role === 'ADMIN') {
+    if (role === 'DEAN' || role === 'ADMIN') {
       return (
         <span className="px-2.5 py-1 text-[11px] rounded-lg font-bold bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center gap-1.5 shadow-xs">
           <Shield className="w-3.5 h-3.5" />
-          <span>Dean Office (Admin)</span>
+          <span>Dean Office</span>
         </span>
       );
     }
     return (
       <span className="px-2.5 py-1 text-[11px] rounded-lg font-bold bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 flex items-center gap-1.5 shadow-xs">
         <UserCheck className="w-3.5 h-3.5" />
-        <span>Faculty</span>
+        <span>Faculty / Staff</span>
       </span>
     );
   };

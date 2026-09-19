@@ -32,7 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab,
   currentUser
 }) => {
-  const isElevated = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN';
+  const isElevated = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'DEAN' || currentUser?.role === 'ADMIN';
 
   const coursewareItems = [
     { id: 'OVERVIEW' as TabType, label: 'Course Overview', icon: LayoutDashboard, badge: null },

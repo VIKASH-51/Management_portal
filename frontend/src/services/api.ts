@@ -84,15 +84,23 @@ export const api = {
     return res.json();
   },
 
-  async switchRole(role: string): Promise<{ access_token: string; user: User }> {
-    const res = await fetch(`${API_BASE_URL}/auth/switch-role/${role}`, {
-      method: 'POST',
-      headers: authHeaders()
-    });
-    if (!res.ok) throw new Error('Failed to switch role');
-    const data = await res.json();
-    setAuthToken(data.access_token);
-    return data;
+  async logout(): Promise<void> {
+    try {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: 'POST',
+        headers: authHeaders()
+      });
+    } catch (e) {
+      console.error('Logout error:', e);
+    } finally {
+      clearAuthToken();
+    }
+  },
+
+  async getPublicRoster(): Promise<any[]> {
+    const res = await fetch(`${API_BASE_URL}/auth/roster`);
+    if (!res.ok) throw new Error('Failed to fetch roster');
+    return res.json();
   },
 
   // Subjects
@@ -495,21 +503,100 @@ export const api = {
     return res.json();
   },
 
-  async handleStaffApproval(userId: number, status: 'APPROVED' | 'REJECTED'): Promise<{ status: string; approval_status: string; is_active: boolean }> {
+  async handleStaffApproval(userId: number, status: 'APPROVED' | 'REJECTED'): Promise<{ status: string; approval_status: string; account_status?: string; is_active: boolean }> {
     const res = await fetch(`${API_BASE_URL}/admin/users/${userId}/approval?status=${status}`, {
       method: 'PATCH',
       headers: authHeaders()
     });
-    if (!res.ok) throw new Error('Failed to update staff approval');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to update approval status');
+    }
     return res.json();
   },
 
-  async deleteUser(userId: number): Promise<{ status: string; message: string }> {
-    const res = await fetch(`${API_BASE_URL}/admin/users/${userId}`, {
+  async createDeletionRequest(targetUserId: number, reason: string): Promise<any> {
+    const res = await fetch(`${API_BASE_URL}/admin/deletion-requests`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ target_user_id: targetUserId, reason })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to submit deletion request');
+    }
+    return res.json();
+  },
+
+  async getDeletionRequests(): Promise<any[]> {
+    const res = await fetch(`${API_BASE_URL}/admin/deletion-requests`, { headers: authHeaders() });
+    if (!res.ok) throw new Error('Failed to fetch deletion requests');
+    return res.json();
+  },
+
+  async resolveDeletionRequest(requestId: number, action: 'APPROVE' | 'REJECT'): Promise<any> {
+    const res = await fetch(`${API_BASE_URL}/admin/deletion-requests/${requestId}/resolve`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ action })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to resolve deletion request');
+    }
+    return res.json();
+  },
+
+  async permanentDeleteUser(userId: number, confirmEmail: string): Promise<{ status: string; message: string }> {
+    const res = await fetch(`${API_BASE_URL}/admin/users/${userId}/permanent`, {
       method: 'DELETE',
+      headers: authHeaders(),
+      body: JSON.stringify({ confirm_email: confirmEmail })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to permanently delete user');
+    }
+    return res.json();
+  },
+
+  async getRoles(): Promise<any[]> {
+    const res = await fetch(`${API_BASE_URL}/admin/roles`, { headers: authHeaders() });
+    if (!res.ok) throw new Error('Failed to fetch roles');
+    return res.json();
+  },
+
+  async getPermissions(): Promise<any[]> {
+    const res = await fetch(`${API_BASE_URL}/admin/permissions`, { headers: authHeaders() });
+    if (!res.ok) throw new Error('Failed to fetch permissions');
+    return res.json();
+  },
+
+  async assignUserPermission(userId: number, permissionCode: string, granted: boolean): Promise<any> {
+    const res = await fetch(`${API_BASE_URL}/admin/users/${userId}/permissions`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ permission_code: permissionCode, granted })
+    });
+    if (!res.ok) throw new Error('Failed to update user permission');
+    return res.json();
+  },
+
+  async updateUserRole(userId: number, role: string): Promise<any> {
+    const res = await fetch(`${API_BASE_URL}/admin/users/${userId}/role?role=${role}`, {
+      method: 'PATCH',
       headers: authHeaders()
     });
-    if (!res.ok) throw new Error('Failed to delete user');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to update user role');
+    }
+    return res.json();
+  },
+
+  async getLoginLogs(): Promise<any[]> {
+    const res = await fetch(`${API_BASE_URL}/admin/login-logs`, { headers: authHeaders() });
+    if (!res.ok) throw new Error('Failed to fetch login logs');
     return res.json();
   },
 

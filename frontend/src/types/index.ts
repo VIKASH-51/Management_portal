@@ -1,4 +1,4 @@
-export type Role = 'FACULTY' | 'ADMIN' | 'SUPER_ADMIN';
+export type Role = 'SUPER_ADMIN' | 'DEAN' | 'STAFF' | 'ADMIN' | 'FACULTY';
 
 export interface User {
   id: number;
@@ -8,9 +8,57 @@ export interface User {
   department: string;
   institution: string;
   designation: string;
+  contact?: string;
   is_active: boolean;
+  account_status?: 'ACTIVE' | 'PENDING' | 'DEACTIVATED' | 'REJECTED' | string;
   approval_status?: 'APPROVED' | 'PENDING' | 'REJECTED';
+  deleted_at?: string | null;
   tenant_id: string;
+  created_at?: string;
+  permissions?: string[];
+}
+
+export interface DeletionRequest {
+  id: number;
+  target_user_id: number;
+  target_email?: string;
+  target_name?: string;
+  target_role?: string;
+  requester_id: number;
+  requester_email?: string;
+  requester_name?: string;
+  reason: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  created_at: string;
+  resolved_at?: string;
+  resolved_by?: number;
+  resolver_email?: string;
+}
+
+export interface LoginLogItem {
+  id: number;
+  user_id?: number;
+  user_email: string;
+  action: string;
+  ip_address: string;
+  user_agent: string;
+  details?: Record<string, any>;
+  created_at: string;
+}
+
+export interface RoleItem {
+  id: number;
+  name: string;
+  description: string;
+  permissions: string[];
+  created_at?: string;
+}
+
+export interface PermissionItem {
+  id: number;
+  code: string;
+  description: string;
+  created_at?: string;
 }
 
 export interface Unit {

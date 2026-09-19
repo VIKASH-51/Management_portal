@@ -9,6 +9,14 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: academic-assistant-db
+          property: connectionString
+      - key: SUPER_ADMIN_EMAIL
+        sync: false
+      - key: SUPER_ADMIN_PASSWORD
+        sync: false
       - key: SECRET_KEY
         generateValue: true
       - key: GEMINI_API_KEY
@@ -39,4 +47,10 @@ services:
           type: web
           name: academic-assistant-backend
           property: host
+
+databases:
+  - name: academic-assistant-db
+    databaseName: academic_assistant
+    user: academic_user
+    plan: free
 
