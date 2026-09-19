@@ -18,7 +18,7 @@ def copilot_chat(req: CopilotChatRequest, current_user: User = Depends(get_curre
         s = db.query(Subject).filter(Subject.id == req.subject_id).first()
         if not s:
             raise HTTPException(status_code=404, detail="Subject not found")
-        if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and s.user_id != current_user.id:
+        if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and s.user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Unauthorized access to this subject")
         subject_name = s.name
         subject_code = s.code

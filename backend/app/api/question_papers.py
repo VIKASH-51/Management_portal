@@ -89,7 +89,7 @@ def get_question_papers_for_subject(subject_id: int, current_user: User = Depend
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized access to this subject")
     qps = db.query(QuestionPaper).filter(QuestionPaper.subject_id == subject_id).order_by(QuestionPaper.created_at.desc()).all()
     return [format_qp_response(qp) for qp in qps]
@@ -99,7 +99,7 @@ def get_question_paper_by_id(qp_id: int, current_user: User = Depends(get_curren
     qp = db.query(QuestionPaper).filter(QuestionPaper.id == qp_id).first()
     if not qp:
         raise HTTPException(status_code=404, detail="Question Paper not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and qp.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and qp.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized access to this question paper")
     return format_qp_response(qp)
 
@@ -113,7 +113,7 @@ def verify_question_paper(
     qp = db.query(QuestionPaper).filter(QuestionPaper.id == qp_id).first()
     if not qp:
         raise HTTPException(status_code=404, detail="Question Paper not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and qp.subject and qp.subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and qp.subject and qp.subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized to verify this question paper")
     
     new_status = payload.get("status", "VERIFIED")

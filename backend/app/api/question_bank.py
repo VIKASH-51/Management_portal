@@ -44,7 +44,7 @@ def get_question_bank_items(
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-    if current_user.role != "ADMIN" and subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to this subject's question bank")
 
     query = db.query(QuestionBankItem).filter(QuestionBankItem.subject_id == subject_id)
@@ -72,7 +72,7 @@ def add_question_bank_item(item_in: QuestionBankItemCreate, current_user: User =
     subject = db.query(Subject).filter(Subject.id == item_in.subject_id).first()
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-    if current_user.role != "ADMIN" and subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to add questions to this subject")
     item = QuestionBankItem(
         subject_id=item_in.subject_id,
@@ -108,7 +108,7 @@ def generate_extra_question_pool(
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-    if current_user.role != "ADMIN" and subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to generate questions for this subject")
 
     units = subject.units
@@ -203,7 +203,7 @@ def delete_question_bank_item(item_id: int, current_user: User = Depends(get_cur
     item = db.query(QuestionBankItem).filter(QuestionBankItem.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
-    if current_user.role != "ADMIN" and item.user_id != current_user.id and (item.subject and item.subject.user_id != current_user.id):
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and item.user_id != current_user.id and (item.subject and item.subject.user_id != current_user.id):
         raise HTTPException(status_code=403, detail="Access denied to delete this question item")
     db.delete(item)
     db.commit()

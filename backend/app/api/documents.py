@@ -17,7 +17,7 @@ def get_subject_documents(subject_id: int, current_user: User = Depends(get_curr
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized access to this subject's documents")
     docs = db.query(Document).filter(Document.subject_id == subject_id).all()
     return docs
@@ -33,7 +33,7 @@ async def upload_document(
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized to upload documents to this subject")
         
     filename = file.filename
@@ -103,7 +103,7 @@ def delete_document(document_id: int, current_user: User = Depends(get_current_u
     doc = db.query(Document).filter(Document.id == document_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and doc.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and doc.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized to delete this document")
         
     db.delete(doc)

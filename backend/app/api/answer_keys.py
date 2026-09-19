@@ -25,7 +25,7 @@ def get_answer_keys_for_qp(qp_id: int, current_user: User = Depends(get_current_
     qp = db.query(QuestionPaper).filter(QuestionPaper.id == qp_id).first()
     if not qp:
         raise HTTPException(status_code=404, detail="Question paper not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and qp.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and qp.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized access to answer keys")
     keys = db.query(AnswerKey).filter(AnswerKey.question_paper_id == qp_id).all()
     return [format_ak_response(k) for k in keys]
@@ -36,6 +36,6 @@ def get_answer_key_by_id(ak_id: int, current_user: User = Depends(get_current_us
     if not ak:
         raise HTTPException(status_code=404, detail="Answer Key not found")
     qp = db.query(QuestionPaper).filter(QuestionPaper.id == ak.question_paper_id).first()
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and qp and qp.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and qp and qp.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized access to this answer key")
     return format_ak_response(ak)

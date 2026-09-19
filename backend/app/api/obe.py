@@ -26,7 +26,7 @@ def get_or_create_subject_obe(
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-    if current_user.role != "ADMIN" and subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to this subject's OBE data")
 
     # Fetch existing Course Outcomes or Auto-Initialize 5 COs
@@ -120,7 +120,7 @@ def auto_generate_course_framework(
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-    if current_user.role != "ADMIN" and subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to synthesize framework for this subject")
 
     units_data = [
@@ -203,7 +203,7 @@ def get_subject_requirements_framework(
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-    if current_user.role != "ADMIN" and subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to view subject requirements")
 
     units_data = [
@@ -291,7 +291,7 @@ def update_course_outcome(
     co = db.query(CourseOutcome).filter(CourseOutcome.id == co_id, CourseOutcome.subject_id == subject_id).first()
     if not co:
         raise HTTPException(status_code=404, detail="Course Outcome not found")
-    if current_user.role != "ADMIN" and co.subject and co.subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and co.subject and co.subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to modify this course outcome")
 
     if payload.description is not None:
@@ -328,7 +328,7 @@ def get_question_paper_obe_distribution(
     qp = db.query(QuestionPaper).filter(QuestionPaper.id == qp_id).first()
     if not qp:
         raise HTTPException(status_code=404, detail="Question Paper not found")
-    if current_user.role != "ADMIN" and qp.subject and qp.subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and qp.subject and qp.subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to question paper OBE distribution")
 
     sets_data = []

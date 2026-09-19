@@ -174,7 +174,7 @@ def export_question_paper_zip_pack(
     qp = db.query(QuestionPaper).filter(QuestionPaper.id == qp_id).first()
     if not qp:
         raise HTTPException(status_code=404, detail="Question paper not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and qp.subject and qp.subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and qp.subject and qp.subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to this question paper")
 
     qp_data = {
@@ -235,7 +235,7 @@ def export_notes_pdf(note_id: int, current_user: User = Depends(get_current_user
     note = db.query(Note).filter(Note.id == note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and note.subject and note.subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and note.subject and note.subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to this note")
 
     note_data = {
@@ -258,7 +258,7 @@ def export_notes_docx(note_id: int, current_user: User = Depends(get_current_use
     note = db.query(Note).filter(Note.id == note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and note.subject and note.subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and note.subject and note.subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to this note")
 
     note_data = {
@@ -281,7 +281,7 @@ def export_notes_markdown(note_id: int, current_user: User = Depends(get_current
     note = db.query(Note).filter(Note.id == note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and note.subject and note.subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and note.subject and note.subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to this note")
 
     fn = f"Notes_{note.topic.replace(' ', '_')}.md"
@@ -300,7 +300,7 @@ def _prepare_answer_key_data(qp_id: int, set_code: str, db: Session, current_use
     qp = db.query(QuestionPaper).filter(QuestionPaper.id == qp_id).first()
     if not qp:
         raise HTTPException(status_code=404, detail="Question paper not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and qp.subject and qp.subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and qp.subject and qp.subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to this answer key")
 
     ak = db.query(AnswerKey).filter(
@@ -430,7 +430,7 @@ def export_all_answer_keys_pack(
     qp = db.query(QuestionPaper).filter(QuestionPaper.id == qp_id).first()
     if not qp:
         raise HTTPException(status_code=404, detail="Question paper not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and qp.subject and qp.subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and qp.subject and qp.subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to this answer key")
 
     qp_data = {
@@ -474,7 +474,7 @@ def _filter_question_bank_items(
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to this subject's question bank")
 
     query = db.query(QuestionBankItem).filter(QuestionBankItem.subject_id == subject_id)
@@ -587,7 +587,7 @@ def export_obe_matrix_excel(
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-    if current_user.role != "ADMIN" and subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to OBE data")
 
     cos = db.query(CourseOutcome).filter(CourseOutcome.subject_id == subject_id).order_by(CourseOutcome.unit_number.asc()).all()
@@ -649,7 +649,7 @@ def export_obe_report_pdf(
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-    if current_user.role != "ADMIN" and subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to OBE data")
 
     cos = db.query(CourseOutcome).filter(CourseOutcome.subject_id == subject_id).order_by(CourseOutcome.unit_number.asc()).all()
@@ -716,7 +716,7 @@ def export_verified_accreditation_dossier(
     qp = db.query(QuestionPaper).filter(QuestionPaper.id == qp_id).first()
     if not qp:
         raise HTTPException(status_code=404, detail="Question paper not found")
-    if current_user.role != "ADMIN" and qp.subject and qp.subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and qp.subject and qp.subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied to this exam dossier")
 
     qp_data = {

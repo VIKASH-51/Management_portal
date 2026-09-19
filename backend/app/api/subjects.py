@@ -34,7 +34,7 @@ def _serialize_subject_units(s_units: List[SyllabusUnit]) -> List[UnitSchema]:
 @router.get("", response_model=List[SubjectResponse])
 def get_subjects(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # Faculty sees their own subjects; Admin/Super Admin can see all subjects
-    if current_user.role in ["ADMIN", "SUPER_ADMIN"]:
+    if current_user.role in ["ADMIN", "DEAN", "SUPER_ADMIN"]:
         subjects = db.query(Subject).all()
     else:
         subjects = db.query(Subject).filter(Subject.user_id == current_user.id).all()
@@ -72,7 +72,7 @@ def get_subject_by_id(subject_id: int, current_user: User = Depends(get_current_
         raise HTTPException(status_code=404, detail="Subject not found")
         
     # Multi-tenant / user isolation check
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and s.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and s.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized access to this subject")
 
     units = _serialize_subject_units(s.units)
@@ -157,7 +157,7 @@ def update_subject(subject_id: int, subj_update: SubjectUpdate, current_user: Us
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
         
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized to modify this subject")
 
     if subj_update.code is not None:
@@ -204,7 +204,7 @@ def delete_subject(subject_id: int, current_user: User = Depends(get_current_use
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized")
     
     # Delete associated records

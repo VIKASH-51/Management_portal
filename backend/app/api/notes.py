@@ -36,7 +36,7 @@ def get_notes_for_subject(subject_id: int, current_user: User = Depends(get_curr
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized access to this subject's notes")
     notes = db.query(Note).filter(Note.subject_id == subject_id).order_by(Note.created_at.desc()).all()
     return [format_note_response(n) for n in notes]
@@ -46,7 +46,7 @@ def get_note_by_id(note_id: int, current_user: User = Depends(get_current_user),
     note = db.query(Note).filter(Note.id == note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and note.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and note.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized access to this note")
     return format_note_response(note)
 
@@ -55,7 +55,7 @@ def generate_lecture_notes(req: NoteGenerateRequest, current_user: User = Depend
     subject = db.query(Subject).filter(Subject.id == req.subject_id).first()
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and subject.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized access to generate notes for this subject")
 
     unit = db.query(SyllabusUnit).filter(
@@ -154,7 +154,7 @@ def update_note(note_id: int, req: NoteUpdateRequest, current_user: User = Depen
     note = db.query(Note).filter(Note.id == note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and note.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and note.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized to modify this note")
 
     content_changed = False
@@ -189,7 +189,7 @@ def approve_note(note_id: int, current_user: User = Depends(get_current_user), d
     note = db.query(Note).filter(Note.id == note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and note.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and note.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized to approve this note")
         
     note.status = "APPROVED"
@@ -203,7 +203,7 @@ def get_note_versions(note_id: int, current_user: User = Depends(get_current_use
     note = db.query(Note).filter(Note.id == note_id).first()
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
-    if current_user.role not in ["ADMIN", "SUPER_ADMIN"] and note.user_id != current_user.id:
+    if current_user.role not in ["ADMIN", "DEAN", "SUPER_ADMIN"] and note.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Unauthorized access to note versions")
     versions = db.query(NoteVersion).filter(NoteVersion.note_id == note_id).order_by(NoteVersion.version_number.desc()).all()
     return versions
